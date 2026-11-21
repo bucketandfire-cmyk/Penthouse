@@ -12,7 +12,12 @@ export async function getPx() {
   return pxCache.v;
 }
 
+// When Helius says the plan's credits are used up, stop calling it for a while instead of retrying every wallet
+let quotaUntil = 0;
+export const quotaHit = () => Date.now() < quotaUntil;
+
 async function page(addr, before) {
+  if (quotaHit()) throw new Error('Helius quota exhausted');
   const u = new URL(`https://api.helius.xyz/v0/addresses/${addr}/transactions`);
   u.searchParams.set('api-key', process.env.HELIUS_API_KEY);
   u.searchParams.set('limit', '100');
@@ -20,7 +25,11 @@ async function page(addr, before) {
   if (before) u.searchParams.set('before', before);
   for (let a = 0; a < 5; a++) {
     const res = await fetch(u);
-    if (res.status === 429 || res.status >= 500) { await sleep(1000 * 2 ** a); continue; }
+    if (res.status === 429) {
+      if (/max usage|quota|credits/i.test(await res.text().catch(() => ''))) { quotaUntil = Date.now() + 30 * 60 * 1000; throw new Error('Helius quota exhausted'); }
+      await sleep(1000 * 2 ** a); continue; // an ordinary rate limit: back off and retry
+    }
+    if (res.status >= 500) { await sleep(1000 * 2 ** a); continue; }
     if (!res.ok) throw new Error(`Helius ${res.status}`);
     return res.json();
   }
