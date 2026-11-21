@@ -3,6 +3,7 @@ import db from './db.js';
 import { positions, walletStats } from './stats.js';
 import { decideTrader, decideDev, better, CFG } from './rules.js';
 
+const LIVE = process.argv.includes('--live'); // hourly pass: demotions only (promotions need daily reviews)
 const now = Math.floor(Date.now() / 1000);
 const DAY = 86400;
 
@@ -29,6 +30,7 @@ db.transaction(() => {
       results.push(decideDev(w, { recent: winCount.get(w.address, now - CFG.devIdleDays * DAY).n }, now));
     }
     const d = results.reduce((a, b) => better(a, b));
+    if (LIVE && !(w.status === 'active' && d.status === 'benched')) continue;
     if (d.status !== w.status) {
       upd.run(d.status, d.streak, now, d.reason || null, w.address);
       ev.run(w.address, now, w.status, d.status, d.reason || '');
