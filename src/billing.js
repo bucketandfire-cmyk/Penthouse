@@ -138,6 +138,20 @@ export function applyMatches(matches, now = nowS()) {
   return n;
 }
 
+// Credit saving: a full parsed-history pull costs ~100 Helius credits, and this runs every 30 s while any invoice is open
+// (invoices stay open for the 24 h grace period). So first ask the cheap RPC (1 credit) whether the treasury has any new
+// transaction, and only do the full pull when it has, or at least every 10 minutes as a safety net.
+let lastSig = null, lastFull = 0;
+async function newestSig() {
+  try {
+    const r = await fetch(`https://mainnet.helius-rpc.com/?api-key=${env.HELIUS_API_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getSignaturesForAddress', params: [CFG.treasury, { limit: 1 }] }),
+    }).then((x) => x.json());
+    return r.result?.[0]?.signature || null;
+  } catch { return null; } // unknown: fall through to the full check
+}
+
 let last = 0, running = false;
 export async function checkPayments({ force = false } = {}) {
   if (!configured() || running || (!force && Date.now() - last < 8000)) return 0;
@@ -147,12 +161,15 @@ export async function checkPayments({ force = false } = {}) {
     db.prepare("UPDATE invoices SET status='expired' WHERE status='pending' AND expires_ts<?").run(now);
     const pend = db.prepare("SELECT * FROM invoices WHERE status!='paid' AND created_ts>?").all(now - CFG.graceHours * 3600);
     if (!pend.length) return 0;
+    const sig = await newestSig();
+    if (sig && sig === lastSig && Date.now() - lastFull < 10 * 60 * 1000) return 0; // nothing new on the treasury wallet
     const u = new URL(`https://api.helius.xyz/v0/addresses/${CFG.treasury}/transactions`);
     u.searchParams.set('api-key', env.HELIUS_API_KEY); u.searchParams.set('limit', '100');
     const r = await fetch(u);
     if (!r.ok) return 0;
     const earliest = Math.min(...pend.map((i) => i.created_ts)) - 120;
     const txs = (await r.json()).filter((t) => t.timestamp >= earliest);
+    lastSig = sig; lastFull = Date.now();
     const { matches, loose } = matchTransfers(txs, pend);
     const n = applyMatches(matches, now);
     const paid = new Set(db.prepare('SELECT sig FROM payments').all().map((p) => p.sig));
