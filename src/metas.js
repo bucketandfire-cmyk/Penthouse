@@ -55,8 +55,8 @@ for (const d of daily) {
   t.firstDay = Math.min(t.firstDay, d.day);
 }
 const tokens = [...byMint.values()].map((t) => ({ ...t, created: t.created ?? t.firstDay * DAY }));
-const reliable = historyDays >= 14;
-console.log(`${tokens.length} named tokens, ${historyDays} days of history${reliable ? '' : ' (need 14+ for trend ratings; showing activity only)'}`);
+const reliable = historyDays >= 7;
+console.log(`${tokens.length} named tokens, ${historyDays} days of history${reliable ? '' : ' (need 7+ for trend ratings; showing activity only)'}`);
 
 // 3. score themes (known lexicon) and terms (unknown, data-driven)
 const opts = { now, minTokens: MIN_TOKENS, minVol: MIN_VOL, reliable };
