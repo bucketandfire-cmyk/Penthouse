@@ -83,7 +83,7 @@ export function currentMetas({ limit = 8, status } = {}) {
   const info = db.prepare("SELECT tokens_cur days, status FROM meta_snapshots WHERE run_ts=? AND kind='info'").get(run);
   const q = (kind) => db.prepare(`SELECT key, status, tokens_cur AS launches_this_week, tokens_prev AS launches_last_week, ROUND(tokens_base,1) AS weekly_avg_before,
       vol_share, trend, winners, smart_wallets AS tracked_wallets_buying, smart_sol AS tracked_sol_bought, examples, aliases
-      FROM meta_snapshots WHERE run_ts=? AND kind=? ${status ? 'AND status=?' : ''} ORDER BY vol_share DESC LIMIT ?`).all(...[run, kind, ...(status ? [status] : []), limit])
+      FROM meta_snapshots WHERE run_ts=? AND kind=? AND status!='faded' ${status ? 'AND status=?' : ''} ORDER BY vol_share DESC LIMIT ?`).all(...[run, kind, ...(status ? [status] : []), limit])
     .map((r) => ({ ...r, examples: parse(r.examples), aliases: parse(r.aliases) }));
   return {
     as_of: new Date(run * 1000).toISOString().slice(0, 10),
