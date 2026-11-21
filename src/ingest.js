@@ -7,7 +7,8 @@ if (!process.env.HELIUS_API_KEY) { console.error('Set HELIUS_API_KEY in .env'); 
 const CONC = +process.env.CONCURRENCY || 4;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const seeds = JSON.parse(fs.readFileSync(new URL('../data/wallets.json', import.meta.url)));
+const readSeeds = (f) => { try { return JSON.parse(fs.readFileSync(new URL('../data/' + f, import.meta.url))); } catch { return []; } };
+const seeds = [...readSeeds('wallets.json'), ...readSeeds('extra-wallets.json')];
 const now0 = Math.floor(Date.now() / 1000);
 const seed = db.prepare("INSERT OR IGNORE INTO wallets(address,name,role,status,source,status_since,first_seen) VALUES(?,?, 'trader','active','seed',?,?)");
 db.transaction(() => seeds.forEach((w) => seed.run(w.address, w.name, now0, now0)))();
