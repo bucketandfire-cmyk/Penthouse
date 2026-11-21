@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const dir = fileURLToPath(new URL('../data/', import.meta.url));
+const dir = process.env.DB_DIR ? process.env.DB_DIR.replace(/\/?$/, '/') : fileURLToPath(new URL('../data/', import.meta.url));
 fs.mkdirSync(dir, { recursive: true });
 const db = new Database(dir + 'penthouse.db');
 db.pragma('journal_mode = WAL');
