@@ -1,0 +1,15 @@
+[
+  { "theme": "animals", "words": ["dog","doge","puppy","pup","cat","kitty","kitten","frog","pepe","bird","parrot","monkey","ape","gorilla","penguin","hippo","moo","duck","fish","whale","shark","bear","bull","wolf","tiger","lion","horse","pig","cow","goat","rat","mouse","raccoon","squirrel","fox","panda","bunny","rabbit","turtle","snail","crab","chicken","bee","owl","sloth","llama","cheetah","hamster","capybara","otter","giraffe","elephant","dolphin","octopus","squid","dino","dinosaur","fart"] },
+  { "theme": "gta6", "words": ["gta","rockstar","vice","lucia","jason"], "patterns": ["gta ?(6|vi)\\b","vice ?city","leonida"] },
+  { "theme": "politics", "words": ["trump","maga","biden","kamala","harris","vance","elon","musk","doge","election","senate","president","potus","republican","democrat","putin","zelensky","congress","vote"] },
+  { "theme": "ai", "words": ["ai","gpt","agent","agents","llm","claude","grok","gemini","chatgpt","neural","robot","bot","openai","anthropic","sentient","agi","terminal"] },
+  { "theme": "tokenized-stocks", "words": ["spy","spyx","nvda","nvdax","qqq","qqqx","tsla","tslax","aapl","stonk","stonks","stock","stocks","etf","nasdaq","wallstreet","wsb","openai","spacex"] },
+  { "theme": "gaming", "words": ["game","gamer","gaming","minecraft","roblox","fortnite","zelda","mario","pokemon","pikachu","steam","playstation","xbox","nintendo","switch","fps"] },
+  { "theme": "anime", "words": ["anime","naruto","goku","luffy","waifu","senpai","otaku","manga","kawaii","sakura","chan","kun"] },
+  { "theme": "food", "words": ["pizza","burger","taco","sushi","ramen","coffee","beer","wine","cheese","bacon","donut","cookie","banana","avocado","chicken","fries","mcdonalds","noodle","egg"] },
+  { "theme": "space", "words": ["moon","mars","rocket","space","alien","ufo","galaxy","star","cosmic","nasa","saturn","jupiter","astronaut","planet"] },
+  { "theme": "sports", "words": ["worldcup","football","soccer","nba","nfl","ufc","messi","ronaldo","lebron","olympics","boxing","goal","basketball","baseball","fifa"] },
+  { "theme": "religion-myth", "words": ["god","jesus","allah","buddha","zeus","thor","odin","satan","devil","angel","demon","pharaoh","anubis"] },
+  { "theme": "memes-classic", "words": ["wojak","chad","gigachad","bonk","wif","hat","cope","rekt","pepe","based","npc","skibidi","sigma","rizz","gyatt","brainrot","sus","kek"] },
+  { "theme": "celebrity-music", "words": ["taylor","swift","drake","kanye","ye","beyonce","rihanna","eminem","bieber","diddy","oprah","kardashian","mrbeast","pewdiepie"] }
+]

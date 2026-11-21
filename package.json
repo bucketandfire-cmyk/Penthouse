@@ -1,0 +1,28 @@
+{
+  "name": "penthouse-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "web": "node src/server.js",
+    "ingest": "node src/ingest.js",
+    "discover": "node src/discover.js",
+    "rotate": "node src/rotate.js",
+    "metas": "node src/metas.js",
+    "billing": "node src/billing-admin.js",
+    "cycle": "node src/cycle.js",
+    "start": "node src/start-all.js",
+    "webhook": "node src/webhook.js",
+    "pfp": "node src/pfp-admin.js",
+    "contacts": "node src/contacts.js",
+    "funnel": "node src/funnel.js",
+    "daily": "node src/recap.js daily",
+    "weekly": "node src/recap.js weekly"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.3",
+    "better-sqlite3": "^11.3.0",
+    "cookie-session": "^2.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

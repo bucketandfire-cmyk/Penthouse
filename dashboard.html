@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Penthouse Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Inter+Tight:wght@400;500;600&display=swap">
+<style>
+:root{color-scheme:dark;--bg:#050505;--surface:#0d0d0d;--surface2:#161616;--ink:#f4f4f4;--muted:#a6a6a6;--line:rgba(255,255,255,.18);--g:#ffffff;--on:#000000;--amber:#ffb84d;--blue:#7fb2ff;--red:#ff6b6b;
+--head:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;--body:"Inter Tight","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse 80% 40% at 50% 0,rgba(255,255,255,.09),transparent 70%),var(--bg);color:var(--ink);font:400 15px/1.5 var(--body);min-height:100vh;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--g);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 0 10px}
+header b{font:800 22px var(--head);letter-spacing:-.02em}
+header nav{display:flex;gap:14px;align-items:center;font-size:14px;color:var(--muted)}
+header nav a{text-decoration:none}header nav a:hover{color:var(--ink)}
+.status{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 14px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:13px;color:var(--muted);background:rgba(24,24,24,.6)}
+.chip b{color:var(--ink);font-weight:600}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:none;border:0;color:var(--muted);font:600 15px var(--body);padding:12px 16px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button{transition:color .15s,text-shadow .15s}
+.tabs button:hover,.tabs button:focus-visible{color:var(--g);text-shadow:0 0 12px rgba(57,255,106,.75),0 0 28px rgba(57,255,106,.35)}
+.tabs button[aria-selected=true]{color:var(--g);border-bottom-color:var(--g)}
+main{padding:20px 0 60px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:center}
+.controls label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+select,input{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px}
+input[type=number]{width:80px}input[type=search]{width:170px}
+.note{border:1px solid rgba(255,184,77,.35);background:rgba(255,184,77,.07);color:#ffd9a0;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:14px}
+.empty,.err{text-align:center;color:var(--muted);padding:60px 20px;border:1px dashed var(--line);border-radius:16px}
+.err{color:#ffb3b3;border-color:rgba(255,107,107,.4)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card h3{margin:0;font:700 20px var(--head);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pill{font:600 12px var(--body);padding:2px 10px;border-radius:999px;border:1px solid currentColor}
+.s-emerging{color:var(--g)}.s-hot{color:var(--amber)}.s-cooling{color:var(--blue)}.s-steady,.s-faded,.s-unrated,.s-candidate,.s-any{color:var(--muted)}.s-active{color:var(--g)}.s-benched{color:var(--amber)}.s-retired{color:var(--red)}
+.big{font:700 28px var(--head);margin:8px 0 0}
+.sub{color:var(--muted);font-size:13px}
+.bar{height:6px;border-radius:99px;background:var(--surface2);margin:10px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--g);border-radius:99px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{background:var(--surface2);border-radius:8px;padding:2px 8px;font-size:12px;color:var(--muted)}
+h2{font:700 18px var(--head);margin:26px 0 12px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.08)}
+th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;user-select:none}
+th[aria-sort]::after{content:attr(data-arrow);color:var(--g);margin-left:4px}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:rgba(255,255,255,.05)}
+td a{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.pos{color:var(--g)}.neg{color:var(--red)}
+.badge{font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--muted);margin-left:6px}
+.badge.ok{color:var(--g)}.badge.warn{color:var(--amber);border-color:rgba(255,184,77,.4)}
+.ev{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.ev time{color:var(--muted);min-width:78px;font-size:13px}
+.addform{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.addform input[name=address]{flex:2 1 300px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.addform input[name=label]{flex:1 1 150px;min-width:0}
+.addform .btn{padding:9px 22px;font-size:15px}
+.msg{min-height:1.4em;margin:8px 0 0;font-size:14px;color:var(--muted)}
+.msg.bad{color:#ffb3b3}
+.mine .addr{margin:2px 0 8px}
+.mine .small{font-size:12.5px}
+.mine details{margin-top:12px;border-top:1px solid rgba(255,255,255,.12);padding-top:8px}
+.mine summary{cursor:pointer;color:var(--muted);font-size:13px}
+.mine .tr{display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0}
+.mine .tr .t{margin-left:auto;color:var(--muted)}
+.side-buy{color:var(--g)}.side-sell{color:var(--red)}
+.xbtn{margin-top:12px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:5px 14px;font:600 13px var(--body);cursor:pointer}
+.xbtn:hover,.xbtn.sure{color:var(--red);border-color:rgba(255,107,107,.5)}
+.av{display:inline-grid;place-items:center;width:var(--s,32px);height:var(--s,32px);border-radius:var(--r,10px);background:linear-gradient(135deg,hsl(var(--hue) 55% 30%),hsl(calc(var(--hue) + 50) 55% 16%));color:hsl(var(--hue) 85% 82%);font:700 calc(var(--s,32px) * .38)/1 var(--head);overflow:hidden;flex:none;vertical-align:middle;text-transform:uppercase}
+.av.round{--r:50%}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.who2{display:inline-flex;gap:5px;align-items:center;vertical-align:middle}
+.toast .coin{margin-top:1px}
+.mine h3 .lbl{display:flex;gap:10px;align-items:center;min-width:0}
+.mine h3 .lbl span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.photo .xbtn{margin-top:0;padding:4px 12px;font-size:12.5px}
+.photo input[type=file]{display:none}
+.pingwrap{position:relative;display:inline-block;margin-right:14px}
+.pingbtn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 12px;font:600 13px var(--body);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.pingbtn:hover,.pingbtn[aria-expanded=true]{color:var(--g);border-color:var(--g);box-shadow:0 0 14px rgba(57,255,106,.4)}
+.pingbtn i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pingbtn.on i{background:var(--g);box-shadow:0 0 8px var(--g)}
+.pingpop{position:absolute;right:0;top:calc(100% + 8px);width:min(320px,calc(100vw - 24px));background:rgba(12,12,12,.98);border:1px solid var(--line);border-radius:14px;padding:14px;z-index:45;box-shadow:0 8px 40px rgba(0,0,0,.6);text-align:left}
+.pingpop[hidden]{display:none}
+.pingpop label{display:flex;gap:8px;align-items:center;font-size:14px;padding:3px 0;color:var(--ink)}
+.pingpop input{accent-color:var(--g)}
+.pingpop h4{margin:12px 0 6px;font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pingpop .rec{max-height:200px;overflow-y:auto;font-size:13px}
+.pingpop .rec b{font:600 13px var(--body);color:var(--ink)}
+.pk-buy{color:var(--g)}.pk-sell{color:var(--red)}.pk-launch{color:var(--amber)}
+.pingpop .rec div{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.08);color:var(--muted)}
+#toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 32px));pointer-events:none}
+.toast{pointer-events:auto;background:rgba(12,12,12,.96);border:1px solid var(--line);border-left:3px solid var(--g);border-radius:12px;padding:10px 10px 10px 12px;display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4;box-shadow:0 0 24px rgba(255,255,255,.18);animation:tin .25s ease-out}
+.toast.k-launch{border-left-color:var(--amber)}.toast.k-sell{border-left-color:var(--red)}
+.toast .tg{display:block;font:700 10.5px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--g);margin-bottom:1px}
+.toast.k-launch .tg{color:var(--amber)}.toast.k-sell .tg{color:var(--red)}
+.toast a{text-decoration:underline;text-underline-offset:2px}
+.toast .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.toast .x:hover{color:var(--ink)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){.toast{animation:none}}
+.gate{margin:12vh auto;text-align:center;max-width:380px;color:var(--muted)}
+.gate h1{font:800 32px var(--head);color:var(--ink);margin:0 0 8px}
+.btn{display:inline-block;background:var(--g);color:var(--on);font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;border:0;cursor:pointer;font:600 16px var(--body)}
+.pay{max-width:560px;margin:5vh auto 0}
+.pay h1{font:800 34px var(--head);margin:0 0 6px;letter-spacing:-.02em}
+.pay ul{padding-left:20px;color:var(--muted);margin:14px 0}
+.pay li{margin:4px 0}.pay li b{color:var(--ink);font-weight:600}
+.seg{display:flex;gap:8px;margin:18px 0 14px}
+.seg button{flex:1;background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:12px;padding:12px;font:600 15px var(--body);cursor:pointer}
+.seg button[aria-pressed=true]{color:var(--on);background:var(--g);border-color:var(--g)}
+.btn.block{display:block;width:100%;text-align:center}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.inv{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:18px}
+.inv .amt{font:700 30px var(--head);word-break:break-all;margin:2px 0 8px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all;color:var(--ink)}
+.copy{background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 12px;font:600 13px var(--body);cursor:pointer;flex:none}
+.qr{display:flex;justify-content:center;margin:14px 0}
+.qr img{width:190px;height:190px;border-radius:12px;background:#fff;padding:8px;image-rendering:pixelated}
+.wait{display:flex;gap:10px;align-items:center;justify-content:center;color:var(--muted);margin-top:14px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--g);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:0 0 28px}
+@media (max-width:600px){.tabs{flex-wrap:wrap;overflow:visible;gap:2px}.tabs button{padding:10px 12px;font-size:14px}.wrap{padding:0 12px}.controls label{flex:1 1 45%}input[type=search]{width:100%}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* black & white theme: green is reserved for the hover glow */
+.btn,button,.card.social{transition:box-shadow .15s,border-color .15s,color .15s,text-shadow .15s}
+.btn:hover,.btn:focus-visible,button:hover,button:focus-visible{box-shadow:0 0 18px rgba(57,255,106,.9),0 0 42px rgba(57,255,106,.5)}
+.tabs button:hover,.tabs button:focus-visible{box-shadow:none}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header><a href="/" aria-label="Penthouse home" style="display:flex;align-items:center"><img src="/logo-spin.webp" alt="Penthouse" width="62" height="44" style="display:block;height:44px;width:auto"></a><nav><span id="who"></span></nav></header>
+  <div class="status" id="status"></div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <main id="panels"></main>
+  <footer>Information, not financial advice. Wallet results are past performance; memecoins are high risk and most go to zero.</footer>
+</div>
+<script>
+// ---------- helpers (all dynamic text goes through textContent, never innerHTML) ----------
+const h = (tag, attrs, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === 'class') e.className = v; else if (k.startsWith('on')) e[k] = v; else if (v != null) e.setAttribute(k, v); }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return e;
+};
+const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, { ...opts, headers: { Accept: 'application/json', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) } });
+  let d = {}; try { d = await r.json(); } catch {}
+  if (r.status === 401 || r.status === 402 || r.status === 403) throw { auth: r.status, msg: d.error };
+  if (!r.ok || d.error) throw { msg: d.error || 'Something went wrong. Try again.' };
+  return d;
+};
+const num = (x, d = 0) => (x == null ? '–' : Number(x).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d }));
+const money = (x) => x == null ? '–' : x >= 1e9 ? `$${(x / 1e9).toFixed(1)}B` : x >= 1e6 ? `$${(x / 1e6).toFixed(1)}M` : x >= 1e3 ? `$${(x / 1e3).toFixed(0)}K` : `$${Math.round(x)}`;
+const pct = (x) => (x == null ? '–' : `${Math.round(x * 100)}%`);
+const ago = (ts) => { if (!ts) return 'never'; const s = Date.now() / 1000 - ts; if (s < 90) return 'just now'; if (s < 5400) return `${Math.round(s / 60)}m ago`; if (s < 129600) return `${Math.round(s / 3600)}h ago`; return `${Math.round(s / 86400)}d ago`; };
+const day = (ts) => ts ? new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '–';
+const mins = (m) => m == null ? '–' : m < 1 ? `${Math.round(m * 60)}s` : m < 90 ? `${num(m, 1)}m` : `${num(m / 60, 1)}h`;
+const solscan = (a, label) => B58.test(a || '') ? h('a', { href: `https://solscan.io/account/${a}`, target: '_blank', rel: 'noopener noreferrer' }, label) : label;
+const dex = (m, label) => B58.test(m || '') ? h('a', { href: `https://dexscreener.com/solana/${m}`, target: '_blank', rel: 'noopener noreferrer' }, label) : label;
+const pill = (s) => h('span', { class: `pill s-${s}` }, s);
+const hue = (str) => { let x = 0; for (const c of String(str)) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x % 360; };
+const pfpSrc = (a, v) => (v ? (window.__pfpSrc?.(a) || `/api/pfp/${encodeURIComponent(a)}?v=${v}`) : null);
+// Picture with a coloured-letters fallback (used until the image loads, or if it never does)
+function av(src, text, seed, size = 32, round = false) {
+  const e = h('span', { class: `av${round ? ' round' : ''}`, style: `--s:${size}px;--hue:${hue(seed)}` }, String(text || '?').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 2) || '?');
+  if (typeof src === 'string' && (src.startsWith('/') || src.startsWith('https://') || src.startsWith('data:image/'))) {
+    const img = h('img', { alt: '', referrerpolicy: 'no-referrer', decoding: 'async' });
+    img.onload = () => e.replaceChildren(img);
+    img.src = src;
+  }
+  return e;
+}
+const empty = (msg) => h('div', { class: 'empty' }, msg);
+const sign = (x, d = 1) => h('span', { class: x > 0 ? 'pos' : x < 0 ? 'neg' : '' }, x == null ? '–' : `${x > 0 ? '+' : ''}${num(x, d)}`);
+
+// sortable table: cols = [{ k, label, n: numeric, cell: (row) => node|string, sort: (row) => value }]
+function table(cols, rows, state) {
+  state.key ??= cols.find((c) => c.def)?.k; state.desc ??= true;
+  const col = cols.find((c) => c.k === state.key);
+  const sorted = [...rows];
+  if (col) sorted.sort((a, b) => { const x = (col.sort || ((r) => r[col.k]))(a), y = (col.sort || ((r) => r[col.k]))(b);
+    return ((x ?? -Infinity) > (y ?? -Infinity) ? 1 : (x ?? -Infinity) < (y ?? -Infinity) ? -1 : 0) * (state.desc ? -1 : 1); });
+  const head = h('tr', {}, cols.map((c) => {
+    const th = h('th', { class: c.n ? 'n' : '', scope: 'col', tabindex: 0, role: 'button' }, c.label);
+    if (c.k === state.key) { th.setAttribute('aria-sort', state.desc ? 'descending' : 'ascending'); th.dataset.arrow = state.desc ? '▼' : '▲'; }
+    const go = () => { state.desc = state.key === c.k ? !state.desc : true; state.key = c.k; state.redraw(); };
+    th.onclick = go; th.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+    return th;
+  }));
+  return h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head),
+    h('tbody', {}, sorted.map((r) => h('tr', {}, cols.map((c) => h('td', { class: c.n ? 'n' : '' }, c.cell ? c.cell(r) : r[c.k])))))));
+}
+
+// ---------- tabs ----------
+const TABS = [];
+function tab(id, label, build) { TABS.push({ id, label, build }); }
+
+tab('metas', 'Metas', (body) => {
+  return async () => {
+    const d = await api('/api/dash/metas');
+    const kids = [];
+    if (!d.ratings_reliable) kids.push(h('div', { class: 'note' }, `Trend ratings unlock after 14 days of history (${d.days_of_history ?? 0} so far). Until then this shows activity only.`));
+    const card = (r, labeled) => h('div', { class: 'card' },
+      h('h3', {}, r.key, pill(r.status)),
+      h('div', { class: 'big' }, `${r.launches_this_week} launches`),
+      h('div', { class: 'sub' }, `${r.launches_last_week} last week · ${num(r.weekly_avg_before, 1)}/wk before that`,
+        ' · ', h('span', { class: r.trend > 0 ? 'pos' : r.trend < 0 ? 'neg' : '' }, `${r.trend > 0 ? '▲' : r.trend < 0 ? '▼' : '■'} ${num(Math.abs(r.trend), 1)}`)),
+      h('div', { class: 'bar', title: 'Share of tracked trading volume this week' }, h('i', { style: `width:${Math.min(100, Math.round(r.vol_share * 100))}%` })),
+      h('div', { class: 'sub' }, `${pct(r.vol_share)} of volume`, r.tracked_wallets_buying ? ` · ${r.tracked_wallets_buying} tracked wallets buying (${num(r.tracked_sol_bought, 1)} SOL)` : ''),
+      r.aliases?.length ? h('div', { class: 'tags' }, r.aliases.map((a) => h('span', { class: 'tag' }, `also: ${a}`))) : null,
+      h('div', { class: 'tags' }, (r.examples || []).map((x) => h('span', { class: 'tag' }, x))));
+    if (!d.themes.length) kids.push(empty('No metas yet. They appear after the first discovery run.'));
+    else kids.push(h('div', { class: 'grid' }, d.themes.map((r) => card(r))));
+    if (d.unlabeled_emerging_terms?.length) kids.push(h('h2', {}, 'New narratives not in the theme list'), h('div', { class: 'grid' }, d.unlabeled_emerging_terms.map((r) => card(r))));
+    kids.push(h('p', { class: 'sub' }, d.notes, ` Data as of ${d.as_of}.`));
+    body.replaceChildren(...kids);
+  };
+});
+
+tab('wallets', 'Wallets', (body) => {
+  const f = { status: 'active', sort: 'realized_pnl_sol', min: 10, q: '' }, st = {};
+  const sel = (name, opts) => { const s = h('select', { 'aria-label': name }, opts.map(([v, l]) => h('option', { value: v }, l))); s.value = f[name]; s.onchange = () => { f[name] = s.value; run(); }; return s; };
+  const min = h('input', { type: 'number', min: 1, max: 500, value: f.min, 'aria-label': 'Minimum closed trades' }); min.onchange = () => { f.min = min.value; run(); };
+  const q = h('input', { type: 'search', placeholder: 'Search name', 'aria-label': 'Search wallet name' }); let t; q.oninput = () => { clearTimeout(t); t = setTimeout(() => { f.q = q.value; run(); }, 300); };
+  const out = h('div', {}), meta = h('p', { class: 'sub' });
+  body.replaceChildren(h('div', { class: 'controls' },
+    h('label', {}, 'Roster', sel('status', [['active', 'Active'], ['benched', 'Benched'], ['candidate', 'Candidates'], ['any', 'All']])),
+    h('label', {}, 'Rank by', sel('sort', [['realized_pnl_sol', 'Profit (SOL)'], ['median_multiple', 'Median multiple'], ['win_rate', 'Win rate'], ['early_entry', 'Earliest entries']])),
+    h('label', {}, 'Min trades', min), q), out, meta);
+  const cols = [
+    { k: 'name', label: 'Wallet', cell: (r) => h('span', {}, h('span', { class: 'who2', style: 'margin-right:8px' }, av(pfpSrc(r.address, r.pfp_v), r.name || r.address, r.address, 22, true)), solscan(r.address, r.name || r.address.slice(0, 6)),
+        r.profitable_in_both_halves ? h('span', { class: 'badge ok', title: 'Profitable in both halves of its history' }, 'consistent') : null,
+        r.median_entry_age_min != null && r.median_entry_age_min < 0.5 ? h('span', { class: 'badge warn', title: 'Buys within seconds of launch: often insider or bundled access you cannot copy' }, 'very early') : null) },
+    { k: 'status', label: 'Status', cell: (r) => pill(r.status) },
+    { k: 'trades', label: 'Trades', n: true, cell: (r) => num(r.trades) },
+    { k: 'win_rate', label: 'Win %', n: true, cell: (r) => pct(r.win_rate) },
+    { k: 'median_multiple', label: 'Median x', n: true, cell: (r) => num(r.median_multiple, 2) },
+    { k: 'pnl_sol', label: 'PnL (SOL)', n: true, def: true, cell: (r) => sign(r.pnl_sol) },
+    { k: 'median_entry_mcap_sol', label: 'Entry mcap (SOL)', n: true, cell: (r) => num(r.median_entry_mcap_sol) },
+    { k: 'median_entry_age_min', label: 'Entry age', n: true, cell: (r) => mins(r.median_entry_age_min) },
+    { k: 'median_hold_min', label: 'Hold', n: true, cell: (r) => mins(r.median_hold_min) },
+    { k: 'pnl_second_half_sol', label: 'Recent half', n: true, cell: (r) => sign(r.pnl_second_half_sol) },
+    { k: 'open_positions', label: 'Open', n: true },
+  ];
+  let rows = [];
+  st.redraw = () => out.replaceChildren(rows.length ? table(cols, rows, st) : empty('No wallets match. Lower the minimum trades or change the roster filter.'));
+  async function run() {
+    const d = await api(`/api/dash/wallets?${new URLSearchParams({ status: f.status, sort: f.sort, min: f.min, q: f.q })}`);
+    rows = d.results; st.key = null; st.desc = true;
+    if (f.sort === 'early_entry') { st.key = 'median_entry_age_min'; st.desc = false; }
+    else if (f.sort === 'median_multiple') st.key = 'median_multiple'; else if (f.sort === 'win_rate') st.key = 'win_rate';
+    st.redraw();
+    meta.textContent = `${d.wallets_with_enough_trades} wallets with enough trades${d.data_window ? ` · trades from ${d.data_window.from} to ${d.data_window.to}` : ''}. ${d.notes}`;
+  }
+  return run;
+});
+
+tab('mine', 'My wallets', (body) => {
+  const open = new Set(); let polls = 0, timer = null, data = null;
+  const addr = h('input', { name: 'address', type: 'text', placeholder: 'Solana wallet address', 'aria-label': 'Wallet address', autocomplete: 'off', spellcheck: 'false', maxlength: 60 });
+  const label = h('input', { name: 'label', type: 'text', placeholder: 'Label (optional)', 'aria-label': 'Label', maxlength: 32 });
+  const msg = h('p', { class: 'msg', role: 'status', 'aria-live': 'polite' });
+  const add = h('button', { class: 'btn', type: 'submit' }, 'Track wallet');
+  const form = h('form', { class: 'addform' }, addr, label, add);
+  const list = h('div', {}), foot = h('p', { class: 'sub' });
+  const month = h('p', { class: 'note' });
+  const csv = h('a', { class: 'btn ghost', href: '/api/dash/mine.csv', download: 'my-wallets.csv', style: 'margin-top:12px' }, 'Export my wallets (CSV)');
+  body.replaceChildren(form, msg, month, list, foot, csv);
+  const say = (t, bad) => { msg.textContent = t || ''; msg.className = bad ? 'msg bad' : 'msg'; };
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const a = addr.value.trim();
+    if (!B58.test(a)) return say('Enter a valid Solana wallet address (32 to 44 characters).', true);
+    add.disabled = true; say('Adding…');
+    try {
+      data = await api('/api/dash/mine', { method: 'POST', body: JSON.stringify({ address: a, label: label.value }) });
+      addr.value = ''; label.value = ''; polls = 0; say('Added. Fetching its trade history now.'); draw(); poll();
+    } catch (err) { if (err.auth) return location.reload(); say(err.msg, true); }
+    add.disabled = false;
+  };
+
+  const trade = (t) => h('div', { class: 'tr' }, h('b', { class: `side-${t.side}` }, t.side), dex(t.mint, t.symbol || `${t.mint.slice(0, 4)}…${t.mint.slice(-4)}`), `${num(t.sol, 2)} SOL`, h('span', { class: 't' }, ago(t.ts)));
+  async function squash(file) { // 128px square, so the upload is tiny
+    if (!/^image\//.test(file.type) || file.size > 8e6) throw new Error('Choose an image under 8 MB.');
+    const url = URL.createObjectURL(file), img = new Image();
+    try {
+      await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error('Could not read that image.')); img.src = url; });
+      const S = 128, c = document.createElement('canvas'); c.width = c.height = S;
+      const m = Math.min(img.width, img.height), ctx = c.getContext('2d');
+      ctx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, S, S);
+      let d = c.toDataURL('image/webp', 0.85); if (!d.startsWith('data:image/webp')) d = c.toDataURL('image/jpeg', 0.85);
+      return d;
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function photoControls(w) {
+    const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', 'aria-label': `Photo for ${w.label || w.address}` });
+    const pick = h('button', { class: 'xbtn', type: 'button', onclick: () => file.click() }, w.pfp_v ? 'Change photo' : 'Add photo');
+    file.onchange = async () => {
+      const f = file.files[0]; if (!f) return;
+      try { say('Uploading photo…'); data = await api(`/api/dash/mine/${encodeURIComponent(w.address)}/pfp`, { method: 'PUT', body: JSON.stringify({ image: await squash(f) }) }); say('Photo saved.'); draw(); }
+      catch (err) { if (err.auth) return location.reload(); say(err.msg || err.message || 'Could not upload that photo.', true); }
+    };
+    const rm = w.pfp_v ? h('button', { class: 'xbtn', type: 'button', onclick: async () => {
+      try { data = await api(`/api/dash/mine/${encodeURIComponent(w.address)}/pfp`, { method: 'DELETE' }); say('Photo removed.'); draw(); }
+      catch (err) { if (err.auth) return location.reload(); say(err.msg, true); } } }, 'Remove photo') : null;
+    return [pick, rm, file];
+  }
+  function card(w) {
+    const s = w.stats, short = `${w.address.slice(0, 4)}…${w.address.slice(-4)}`;
+    const kill = h('button', { class: 'xbtn', type: 'button' }, 'Remove');
+    let t; kill.onclick = async () => {
+      if (!kill.classList.contains('sure')) { kill.classList.add('sure'); kill.textContent = 'Click again to remove'; t = setTimeout(() => { kill.classList.remove('sure'); kill.textContent = 'Remove'; }, 3500); return; }
+      clearTimeout(t); kill.disabled = true;
+      try { data = await api(`/api/dash/mine/${encodeURIComponent(w.address)}`, { method: 'DELETE' }); say('Removed.'); draw(); }
+      catch (err) { kill.disabled = false; if (err.auth) return location.reload(); say(err.msg, true); }
+    };
+    const det = h('details', {}, h('summary', {}, `Recent trades (${w.recent.length})`), w.recent.length ? w.recent.map(trade) : h('div', { class: 'sub' }, 'No swaps in the last 30 days.'));
+    if (open.has(w.address)) det.open = true;
+    det.ontoggle = () => { det.open ? open.add(w.address) : open.delete(w.address); };
+    return h('div', { class: 'card' },
+      h('h3', {}, h('span', { class: 'lbl' }, av(pfpSrc(w.address, w.pfp_v), w.label || short, w.address, 40, true), h('span', { class: 't' }, w.label || short)), w.roster_status ? h('span', { class: `pill s-${w.roster_status}`, title: 'This wallet is also on the Penthouse roster' }, `roster · ${w.roster_status}`) : null),
+      h('div', { class: 'sub addr' }, solscan(w.address, w.address.length > 20 ? `${w.address.slice(0, 10)}…${w.address.slice(-6)}` : w.address)),
+      w.pending ? h('div', { class: 'note' }, 'Fetching trade history. This takes a minute or two.') : [
+        s ? [h('div', { class: 'big' }, sign(s.pnl_sol), ' SOL'),
+             h('div', { class: 'sub' }, `${s.trades} closed trades · ${pct(s.win_rate)} wins · median ${num(s.median_multiple, 2)}x · ${s.open_positions} open`),
+             s.median_hold_min != null ? h('div', { class: 'sub' }, `Median hold ${mins(s.median_hold_min)} · entry mcap ${num(s.median_entry_mcap_sol)} SOL`) : null]
+          : [h('div', { class: 'big' }, '–'), h('div', { class: 'sub' }, 'Not enough closed trades yet. A closed trade is a buy that was later sold, of at least 0.05 SOL.')],
+        h('div', { class: 'sub small' }, `${w.swaps_30d} swaps in 30 days · ${w.buys_24h} buys in the last 24h · last trade ${ago(w.last_trade_ts)}`)],
+      det, h('div', { class: 'photo' }, photoControls(w), kill));
+  }
+  function draw() {
+    if (!data) return;
+    list.className = 'mine';
+    list.replaceChildren(data.wallets.length
+      ? h('div', { class: 'grid' }, data.wallets.map(card))
+      : empty('You are not tracking any wallets yet. Paste a Solana address above to start.'));
+    foot.textContent = `${data.wallets.length} of ${data.limit} wallets. ${data.note}`;
+    const ws = data.wallets, st = ws.map((w) => w.stats).filter(Boolean), pnl = st.reduce((a, x) => a + (x.pnl_sol || 0), 0);
+    month.textContent = ws.length ? `Your last 30 days: ${ws.length} wallets tracked · ${ws.reduce((a, w) => a + w.swaps_30d, 0)} swaps · ${ws.reduce((a, w) => a + w.buys_24h, 0)} buys in the last 24h` + (st.length ? ` · ${st.reduce((a, x) => a + x.trades, 0)} closed trades · realized ${sign(pnl)} SOL` : '') : '';
+  }
+  function poll() { // while a new wallet is still loading, check again soon
+    clearTimeout(timer);
+    if (data?.wallets.some((w) => w.pending) && polls++ < 12) timer = setTimeout(async () => { if (body.hidden) return poll(); try { data = await api('/api/dash/mine'); draw(); } catch {} poll(); }, 8000);
+  }
+  return async () => { data = await api('/api/dash/mine'); draw(); poll(); };
+});
+
+tab('buys', 'Live buys', (body) => {
+  const f = { hours: 6, min: 2 }, st = {};
+  const sel = (name, opts) => { const s = h('select', { 'aria-label': name }, opts.map(([v, l]) => h('option', { value: v }, l))); s.value = f[name]; s.onchange = () => { f[name] = s.value; run(); }; return s; };
+  const out = h('div', {}), meta = h('p', { class: 'sub' });
+  body.replaceChildren(h('div', { class: 'controls' },
+    h('label', {}, 'Window', sel('hours', [[1, 'Last hour'], [6, 'Last 6 hours'], [24, 'Last 24 hours'], [72, 'Last 3 days']])),
+    h('label', {}, 'Wallets bought', sel('min', [[1, '1+'], [2, '2+'], [3, '3+'], [5, '5+']]))), out, meta);
+  const cols = [
+    { k: 'symbol', label: 'Token', cell: (r) => dex(r.mint, r.symbol || r.mint.slice(0, 6)) },
+    { k: 'tracked_wallets_bought', label: 'Wallets', n: true, def: true },
+    { k: 'sol_spent_total', label: 'SOL bought', n: true, cell: (r) => num(r.sol_spent_total, 1) },
+    { k: 'w', label: 'Who', sort: (r) => r.wallets.length, cell: (r) => (r.wallets || []).join(', ') },
+  ];
+  let rows = [];
+  st.redraw = () => out.replaceChildren(rows.length ? table(cols, rows, st) : empty('No tokens bought by that many active-roster wallets in this window.'));
+  async function run() { const d = await api(`/api/dash/buys?${new URLSearchParams(f)}`); rows = d.tokens; st.key = null; st.redraw(); meta.textContent = d.note; }
+  return run;
+});
+
+tab('devs', 'Devs', (body) => {
+  const st = {}; let rows = [];
+  const cols = [
+    { k: 'name', label: 'Dev', cell: (r) => solscan(r.address, r.name) },
+    { k: 'status', label: 'Status', cell: (r) => pill(r.status) },
+    { k: 'winners', label: 'Winning tokens', n: true, def: true },
+    { k: 'best_peak_fdv_usd', label: 'Best peak', n: true, cell: (r) => money(r.best_peak_fdv_usd) },
+    { k: 'last_win_ts', label: 'Last winner', n: true, cell: (r) => day(r.last_win_ts) },
+    { k: 'note', label: 'Why on the list' },
+  ];
+  st.redraw = () => body.replaceChildren(rows.length ? table(cols, rows, st) : empty('No devs yet. They are added when discovery finds a winning token.'));
+  return async () => { rows = (await api('/api/dash/devs')).devs; st.redraw(); };
+});
+
+tab('winners', 'Winners', (body) => {
+  const st = {}; let rows = [];
+  const cols = [
+    { k: 'symbol', label: 'Token', cell: (r) => dex(r.mint, r.symbol || r.mint.slice(0, 6)) },
+    { k: 'launchpad', label: 'Launchpad', cell: (r) => r.launchpad || '–' },
+    { k: 'peak_fdv_usd', label: 'Peak mcap', n: true, def: true, cell: (r) => money(r.peak_fdv_usd) },
+    { k: 'gain_x', label: 'Run', n: true, cell: (r) => r.gain_x != null ? `${num(r.gain_x, 1)}x` : '–' },
+    { k: 'creator_name', label: 'Dev', cell: (r) => r.creator ? solscan(r.creator, r.creator_name || r.creator.slice(0, 6)) : 'unknown' },
+    { k: 'detected_ts', label: 'Found', n: true, cell: (r) => day(r.detected_ts) },
+  ];
+  st.redraw = () => body.replaceChildren(rows.length ? table(cols, rows, st) : empty('No winning tokens found in the last 7 days.'));
+  return async () => { rows = (await api('/api/dash/winners?days=7')).winners; st.redraw(); };
+});
+
+tab('roster', 'Roster', (body) => {
+  return async () => {
+    const d = await api('/api/dash/roster');
+    const by = {}; for (const r of d.roster_counts) (by[r.role] ||= []).push(r);
+    const kids = [h('div', { class: 'status' }, d.roster_counts.map((r) => h('span', { class: 'chip' }, `${r.role} · ${r.status} `, h('b', {}, num(r.n)))))];
+    kids.push(h('h2', {}, 'Promotions and benchings'));
+    kids.push(d.recent_changes.length ? h('div', {}, d.recent_changes.map((e) =>
+      h('div', { class: 'ev' }, h('time', {}, e.date), h('div', {}, h('b', {}, e.name), ` (${e.role}) `, e.from_status ? [pill(e.from_status), ' → '] : 'added as ', pill(e.to_status), e.reason ? h('div', { class: 'sub' }, e.reason) : null))))
+      : empty('No roster changes in this period.'));
+    body.replaceChildren(...kids);
+  };
+});
+
+// ---------- shell ----------
+const tabsEl = document.getElementById('tabs'), panels = document.getElementById('panels');
+let current = null;
+function select(id) {
+  for (const t of TABS) { t.btn.setAttribute('aria-selected', String(t.id === id)); t.btn.tabIndex = t.id === id ? 0 : -1; t.panel.hidden = t.id !== id; }
+  current = TABS.find((t) => t.id === id);
+  history.replaceState(null, '', `#${id}`);
+  refresh(current);
+}
+async function refresh(t) {
+  if (!t.refresh) t.refresh = t.build(t.panel);
+  try { await t.refresh(); }
+  catch (e) {
+    if (e.auth) return e.auth === 402 ? showPaywall() : showGate(e.auth === 401);
+    if (!t.panel.children.length || t.panel.querySelector('.err')) t.panel.replaceChildren(h('div', { class: 'err' }, e.msg || 'Could not load this tab. Try again.'));
+  }
+  loadStatus();
+}
+async function loadStatus() {
+  try {
+    const o = await api('/api/dash/overview'), s = o.trader_status || {};
+    document.getElementById('status').replaceChildren(
+      h('span', { class: 'chip' }, 'Active wallets ', h('b', {}, num(s.active || 0))),
+      h('span', { class: 'chip' }, 'Benched ', h('b', {}, num(s.benched || 0))),
+      h('span', { class: 'chip' }, 'Candidates ', h('b', {}, num(s.candidate || 0))),
+      h('span', { class: 'chip' }, 'Active devs ', h('b', {}, num(o.active_devs))),
+      h('span', { class: 'chip' }, 'Last trade ', h('b', {}, ago(o.last_trade_ts))),
+      h('span', { class: 'chip' }, 'Metas updated ', h('b', {}, ago(o.last_meta_ts))),
+      ME.via === 'paid' && ME.expires ? h('span', { class: 'chip' }, 'Access until ', h('b', {}, day(ME.expires)), ' · ', h('a', { href: '#renew', onclick: (e) => { e.preventDefault(); showPaywall(true); } }, 'Renew')) : null);
+  } catch {}
+}
+function showGate(needLogin) {
+  document.getElementById('app').replaceChildren(h('div', { class: 'gate' },
+    h('h1', {}, needLogin ? 'Penthouse Dashboard' : 'Members only'),
+    h('p', {}, needLogin ? 'Sign in with Discord to check your membership.' : 'Join the Penthouse Discord, then sign in again.'),
+    h('a', { class: 'btn', href: '/login' }, needLogin ? 'Sign in with Discord' : 'Try again'),
+    h('p', { style: 'margin-top:20px' }, h('a', { href: '/' }, '← Back to home'))));
+}
+let ME = {};
+const copy = (text, btn) => { const done = () => { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => (btn.textContent = t), 1200); };
+  (navigator.clipboard?.writeText(text) || Promise.reject()).then(done).catch(() => { const t = h('textarea', {}); t.value = text; document.body.append(t); t.select(); try { document.execCommand('copy'); done(); } catch {} t.remove(); }); };
+
+async function showPaywall(canGoBack) {
+  const price = ME.price_usd ?? 49, days = ME.period_days ?? 30;
+  let asset = 'usdc', plan = 'month', timer = null, poll = null;
+  const PL = ME.plans || {}, mo = (v) => (+v % 1 ? (+v).toFixed(2) : String(+v));
+  const stop = () => { clearInterval(timer); clearInterval(poll); };
+  const box = h('div', { class: 'inv', hidden: '' }), msg = h('p', { class: 'sub', role: 'status' });
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Pay with' }, ['usdc', 'sol'].map((a) => {
+    const b = h('button', { type: 'button', 'aria-pressed': String(a === asset) }, a === 'usdc' ? 'USDC' : 'SOL');
+    b.onclick = () => { asset = a; for (const x of seg.children) x.setAttribute('aria-pressed', String(x === b)); box.hidden = true; stop(); msg.textContent = ''; };
+    return b;
+  }));
+  const go = h('button', { class: 'btn block', type: 'button' }, `Pay $${price} for ${days} days`);
+  const planSeg = PL.quarter ? h('div', { class: 'seg', role: 'group', 'aria-label': 'Plan' }, [['month', `${PL.month.days} days · $${mo(PL.month.usd)}`], ['quarter', `${PL.quarter.days} days · $${mo(PL.quarter.usd)}`]].map(([k, lab]) => {
+    const b = h('button', { type: 'button', 'aria-pressed': String(k === plan) }, lab);
+    b.onclick = () => { plan = k; for (const x of planSeg.children) x.setAttribute('aria-pressed', String(x === b)); box.hidden = true; stop(); msg.textContent = ''; go.textContent = `Pay $${mo(PL[k].usd)} for ${PL[k].days} days`; };
+    return b;
+  })) : null;
+  go.onclick = async () => {
+    go.disabled = true; msg.textContent = '';
+    try {
+      const r = await fetch('/api/billing/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asset, plan }) });
+      const inv = await r.json(); if (!r.ok) throw new Error(inv.error || 'Could not create the invoice.');
+      showInvoice(inv);
+    } catch (e) { msg.textContent = e.message; } finally { go.disabled = false; }
+  };
+  function showInvoice(inv) {
+    stop();
+    const unit = inv.asset === 'usdc' ? 'USDC' : 'SOL';
+    const left = h('b', {}), status = h('span', {}, 'Waiting for your payment…');
+    const qr = h('div', { class: 'qr' });
+    const draw = () => { if (window.qrcode) { try { const q = window.qrcode(0, 'M'); q.addData(inv.link); q.make(); qr.replaceChildren(h('img', { src: q.createDataURL(4), alt: 'Payment QR code' })); } catch {} } };
+    if (window.qrcode) draw(); else { const sc = h('script', { src: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js' }); sc.onload = draw; document.head.append(sc); }
+    const cp = (label, val) => { const b = h('button', { class: 'copy', type: 'button' }, 'Copy'); b.onclick = () => copy(val, b); return h('div', { class: 'row' }, h('div', {}, h('div', { class: 'sub' }, label), h('div', { class: 'mono' }, val)), b); };
+    box.replaceChildren(
+      h('div', { class: 'sub' }, 'Send exactly'), h('div', { class: 'amt' }, `${inv.amount} ${unit}`),
+      h('div', { class: 'sub' }, `Worth about $${inv.usd}. The extra digits identify your payment, so please do not round.`),
+      cp('Amount', inv.amount), cp('To this Solana address', inv.address), qr,
+      h('a', { class: 'btn ghost block', href: inv.link }, 'Open in wallet app'),
+      h('div', { class: 'wait' }, h('span', { class: 'dot' }), status),
+      h('p', { class: 'sub' }, 'Quote valid for ', left, '. Payments are detected automatically within about a minute of confirmation. If you sent a different amount, contact an admin with your transaction link.'));
+    box.hidden = false;
+    const tick = () => { const s = Math.max(0, inv.expires_ts - Math.floor(Date.now() / 1000)); left.textContent = s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : 'expired (late payments are still credited)'; };
+    tick(); timer = setInterval(tick, 1000);
+    poll = setInterval(async () => {
+      try {
+        const st = await api(`/api/billing/invoice/${encodeURIComponent(inv.id)}`);
+        if (st.status === 'paid') { stop(); status.textContent = 'Payment received. Unlocking…'; setTimeout(() => location.reload(), 1200); }
+      } catch {}
+    }, 5000);
+  }
+  document.getElementById('app').replaceChildren(h('div', { class: 'pay' },
+    h('h1', {}, 'Penthouse Dashboard'),
+    h('p', { class: 'sub' }, `$${price} for ${days} days, paid in crypto on Solana. Renew any time; time adds on.`),
+    h('ul', {}, [['Metas', 'which narratives are running, and which are cooling'], ['Wallets', 'ranked, filterable trader stats with sample sizes'], ['Live buys', 'what tracked wallets are buying right now'],
+      ['Devs and Winners', 'who keeps launching winners'], ['Roster', 'who earned a spot and who got benched']].map(([a, b]) => h('li', {}, h('b', {}, a), ': ', b))),
+    PL.quarter ? [h('div', { class: 'sub' }, 'Plan'), planSeg] : null,
+    h('div', { class: 'sub' }, 'Pay with'), seg, go, msg, box,
+    h('p', { class: 'sub' }, 'Information, not financial advice. Wallet results are past performance and memecoins are high risk. Payments are final.'),
+    canGoBack ? h('p', {}, h('a', { href: '#', onclick: (e) => { e.preventDefault(); location.reload(); } }, 'Back to dashboard')) : h('p', {}, h('a', { href: '/' }, '← Back to home'), ' · ', h('a', { href: '/logout' }, 'Sign out'))));
+}
+
+// ---------- live pings: small corner notifications ----------
+const PK = 'ph-pings';
+const PKINDS = [['dev_launch', 'Dev launches a coin'], ['dev_buy', 'Dev buys a coin'], ['trader_buy', 'Trader buys'], ['trader_sell', 'Trader sells']];
+const PTAG = { dev_launch: 'Dev launch', dev_buy: 'Dev buy', trader_buy: 'Buy', trader_sell: 'Sell' };
+const PCLS = { dev_launch: 'k-launch', dev_buy: 'k-buy', trader_buy: 'k-buy', trader_sell: 'k-sell' };
+const loadPrefs = () => { let p = {}; try { p = JSON.parse(localStorage.getItem(PK) || '{}'); } catch {} const d = { on: true }; for (const [k] of PKINDS) d[k] = true; return { ...d, ...p }; };
+const savePrefs = (p) => { try { localStorage.setItem(PK, JSON.stringify(p)); } catch {} };
+function pingText(e, small) {
+  const tok = dex(e.mint, e.symbol || `${e.mint.slice(0, 4)}…${e.mint.slice(-4)}`), sol = e.sol != null ? `${num(e.sol, 2)} SOL` : '';
+  const who = h('span', { class: 'who2' }, av(pfpSrc(e.address, e.pfp_v), e.name, e.address, small ? 14 : 18, true), h('b', {}, e.name));
+  if (e.kind === 'dev_launch') return [who, ' launched ', tok, sol ? ` and bought ${sol}` : ''];
+  if (e.kind === 'trader_sell') return [who, ` sold ${sol} of `, tok];
+  return [who, ` bought ${sol} of `, tok];
+}
+function startPings() {
+  window.__stopPings?.();
+  const prefs = loadPrefs();
+  let last = null, timer = null, live = true, recent = [], open = false;
+  const box = h('div', { id: 'toasts', role: 'status', 'aria-live': 'polite' });
+  const btn = h('button', { class: 'pingbtn', type: 'button', 'aria-expanded': 'false', 'aria-haspopup': 'true' }, h('i'), 'Pings');
+  const pop = h('div', { class: 'pingpop', hidden: '' });
+  const wrap = h('span', { class: 'pingwrap' }, btn, pop);
+  document.getElementById('who').before(wrap); document.body.append(box);
+
+  const sync = () => { btn.classList.toggle('on', prefs.on); };
+  const chk = (key, text) => { const c = h('input', { type: 'checkbox' }); c.checked = !!prefs[key]; c.onchange = () => { prefs[key] = c.checked; savePrefs(prefs); sync(); }; return h('label', {}, c, text); };
+  const note = h('div', { class: 'sub', style: 'margin-top:8px', hidden: '' }, 'Live pings are not switched on for this site yet.');
+  const rec = h('div', { class: 'rec' });
+  pop.append(chk('on', 'Show pings'), h('h4', {}, 'Notify me when'), ...PKINDS.map(([k, l]) => chk(k, l)), note, h('h4', {}, 'Recent'), rec);
+  const drawRec = () => { // only the list refreshes, so a checkbox is never replaced while it is being clicked
+    note.hidden = live;
+    rec.replaceChildren(...(recent.length ? [...recent].reverse().map((e) => h('div', {}, h('span', { class: `pill pk-${e.kind === 'trader_sell' ? 'sell' : e.kind === 'dev_launch' ? 'launch' : 'buy'}` }, PTAG[e.kind]), ' ', pingText(e, true), ' ', h('span', { class: 'sub' }, ago(e.ts)))) : [h('div', {}, 'Nothing yet.')]));
+  };
+  const setOpen = (v) => { open = v; pop.hidden = !v; btn.setAttribute('aria-expanded', String(v)); if (v) drawRec(); };
+  btn.onclick = () => setOpen(!open);
+  const outside = (e) => { if (open && !wrap.contains(e.target)) setOpen(false); };
+  const esc = (e) => { if (e.key === 'Escape' && open) { setOpen(false); btn.focus(); } };
+  document.addEventListener('click', outside); document.addEventListener('keydown', esc);
+
+  function toast(e) {
+    let t; const kill = () => { clearTimeout(t); el.remove(); };
+    const arm = (ms) => { clearTimeout(t); t = setTimeout(kill, ms); };
+    const x = h('button', { class: 'x', type: 'button', 'aria-label': 'Dismiss', onclick: kill }, '×');
+    const el = h('div', { class: `toast ${PCLS[e.kind] || ''}` }, h('span', { class: 'coin' }, av(e.image, e.symbol || e.mint, e.mint, 38)), h('div', {}, h('span', { class: 'tg' }, PTAG[e.kind] || 'Ping'), pingText(e)), x);
+    el.onmouseenter = () => clearTimeout(t); el.onmouseleave = () => arm(3000);
+    box.append(el); while (box.children.length > 4) box.firstChild.remove();
+    arm(8000);
+  }
+  function summary(n) {
+    const el = h('div', { class: 'toast' }, h('div', {}, h('span', { class: 'tg' }, 'Pings'), `+${n} more. Open Pings to see them.`), h('button', { class: 'x', type: 'button', 'aria-label': 'Dismiss', onclick: () => el.remove() }, '×'));
+    box.append(el); setTimeout(() => el.remove(), 8000);
+  }
+  async function poll() {
+    if (document.hidden) return;
+    try {
+      const d = await api('/api/dash/events' + (last == null ? '' : `?after=${last}`));
+      live = d.live !== false;
+      if (last == null) { recent = d.events.slice(-15); last = d.latest; }
+      else {
+        last = d.events.length ? d.events[d.events.length - 1].id : Math.max(last, d.latest);
+        recent = recent.concat(d.events).slice(-15);
+        const show = prefs.on ? d.events.filter((e) => prefs[e.kind]) : [];
+        show.slice(-3).forEach(toast);
+        if (show.length > 3) summary(show.length - 3);
+      }
+      if (open) drawRec();
+    } catch (e) { if (e.auth) stop(); }
+  }
+  const onVis = () => { if (!document.hidden) poll(); };
+  document.addEventListener('visibilitychange', onVis);
+  function stop() { clearInterval(timer); document.removeEventListener('click', outside); document.removeEventListener('keydown', esc); document.removeEventListener('visibilitychange', onVis); wrap.remove(); box.remove(); }
+  window.__stopPings = stop;
+  sync(); poll(); timer = setInterval(poll, 5000);
+}
+
+async function init() {
+  const me = await fetch('/api/me').then((r) => r.json()).catch(() => ({}));
+  if (!me.name) return showGate(true);
+  ME = me;
+  if (!me.paid) return me.reason === 'not_member' ? showGate(false) : showPaywall();
+  if (location.hash === '#renew' && me.via === 'paid') return showPaywall(true);
+  const refBtn = h('button', { type: 'button', class: 'btn ghost', style: 'padding:6px 14px;font-size:13px', title: 'Copy your referral link' }, 'Refer a friend');
+  refBtn.onclick = async () => { try { const r = await api('/api/dash/referral'); const link = location.origin + r.path; copy(link, refBtn); refBtn.title = `You get ${r.reward_days} free days when a friend pays. Joined: ${r.joined}, paid: ${r.paid}`; } catch {} };
+  document.getElementById('who').append(refBtn, ` ${me.name} · `, h('a', { href: '/logout' }, 'Sign out'));
+  for (const t of TABS) {
+    t.btn = h('button', { role: 'tab', id: `t-${t.id}`, 'aria-controls': `p-${t.id}`, onclick: () => select(t.id) }, t.label);
+    t.panel = h('section', { role: 'tabpanel', id: `p-${t.id}`, 'aria-labelledby': `t-${t.id}`, hidden: '' });
+    tabsEl.append(t.btn); panels.append(t.panel);
+  }
+  tabsEl.onkeydown = (e) => { const i = TABS.indexOf(current), n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : null; if (n == null) return; e.preventDefault(); const t = TABS[(n + TABS.length) % TABS.length]; select(t.id); t.btn.focus(); };
+  select(TABS.find((t) => t.id === location.hash.slice(1))?.id || TABS[0].id);
+  setInterval(() => { if (!document.hidden && current) refresh(current); }, 60000); // live refresh
+  startPings();
+  whatsNew();
+}
+const WN = '2026-11-18';
+function whatsNew() {
+  try { if (localStorage.getItem('ph-wn') === WN) return; } catch {}
+  const close = () => { try { localStorage.setItem('ph-wn', WN); } catch {} d.close(); d.remove(); };
+  const d = h('dialog', { 'aria-labelledby': 'wn-t', style: 'background:var(--surface2);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:24px;max-width:440px;width:calc(100% - 32px)' },
+    h('h2', { id: 'wn-t', style: 'margin:0 0 10px;font:700 22px var(--head)' }, 'What’s new'),
+    h('ul', { style: 'margin:0 0 18px;padding-left:20px;display:grid;gap:8px;color:var(--muted)' }, [
+      'My wallets now has a monthly summary and CSV export.',
+      'Refer a friend: use the button in the header to copy your link and earn free days when they pay.',
+      'You can renew for 3 months at a discount from the renew screen.',
+      'A free Beginners Guide series is being released weekly on the front page.'].map((t) => h('li', {}, t))),
+    h('button', { class: 'btn', type: 'button', onclick: close }, 'Got it'));
+  d.addEventListener('cancel', close);
+  document.body.append(d); d.showModal();
+}
+init();
+</script>
+</body>
+</html>
