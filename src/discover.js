@@ -17,6 +17,7 @@ const C = {
   minBuySol: 0.5, minProfitSol: +env.MIN_TRADER_PROFIT_SOL || 2, perToken: +env.TRADERS_PER_TOKEN || 15,
 };
 const px = await loadPx();
+let quota = false; // set when Helius says the plan's credits are used up
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const now = Math.floor(Date.now() / 1000);
 const DAY = 86400;
@@ -114,13 +115,16 @@ async function findCreator(w) {
 // ---------- Traders who profited on a token ----------
 async function topTraders(mint, creator) {
   const agg = new Map();
-  let before;
+  let before, tries = 0;
   for (let p = 0; p < C.tokenPages; p++) {
     const u = new URL(`https://api.helius.xyz/v0/addresses/${mint}/transactions`);
     u.searchParams.set('api-key', KEY); u.searchParams.set('limit', '100'); u.searchParams.set('type', 'SWAP');
     if (before) u.searchParams.set('before', before);
     const r = await fetch(u);
-    if (r.status === 429) { await sleep(2000); p--; continue; }
+    if (r.status === 429) { // rate limit: retry a few times; out of credits: give up on this token
+      if (/max usage|quota|credits/i.test(await r.text().catch(() => '')) || ++tries > 5) { quota = true; break; }
+      await sleep(2000 * tries); p--; continue;
+    }
     if (!r.ok) break;
     const txs = await r.json();
     if (!txs.length) break;
@@ -162,8 +166,10 @@ await evaluate();
 const todo = db.prepare('SELECT * FROM winners WHERE scanned=0 ORDER BY peak_fdv_usd DESC LIMIT ?').all(C.tokensPerRun);
 let devs = 0, traders = 0;
 for (const w of todo) {
+  if (quota) { console.error('Helius quota exhausted: stopping discovery early (resumes next run)'); break; }
   const creator = await findCreator(w);
   const list = await topTraders(w.mint, creator);
+  if (quota) continue; // incomplete data: leave this token to be scanned again later
   db.transaction(() => {
     if (creator && addWallet(creator, 'dev', 'active', `launched ${w.name} (peak $${Math.round(w.peak_fdv_usd / 1000)}k FDV)`)) devs++;
     for (const t of list) if (addWallet(t.w, 'trader', 'candidate', `+${t.profit.toFixed(1)} SOL (${t.mult.toFixed(1)}x) on ${w.name}`)) traders++;
