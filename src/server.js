@@ -38,10 +38,10 @@ const X_OK = /^https:\/\/(www\.)?(x|twitter)\.com\/\w+\/?$/;
 const pick = (v, ok) => (ok.test(v || '') ? v : '#');
 const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const REFUND_DAYS = Math.max(0, parseInt(process.env.REFUND_DAYS, 10) || 0); // 0 = payments are final
-function page(file, evt) {
+function page(file, evt, dir = 'public') {
   return (req, res) => {
     if (evt) track(evt, req.ip);
-    const html = fs.readFileSync(path.join(__dirname, '../public', file), 'utf8')
+    const html = fs.readFileSync(path.join(__dirname, '..', dir, file), 'utf8')
       .replaceAll('{{INVITE}}', pick(process.env.DISCORD_INVITE_URL, INVITE_OK))
       .replaceAll('{{TIKTOK}}', pick(process.env.TIKTOK_URL, TIKTOK_OK))
       .replaceAll('{{CONTACT}}', MAIL_OK.test(process.env.CONTACT_EMAIL || '') ? `mailto:${process.env.CONTACT_EMAIL}` : pick(process.env.DISCORD_INVITE_URL, INVITE_OK))
@@ -62,7 +62,7 @@ function page(file, evt) {
   };
 }
 app.get('/', page('index.html', 'visit'));
-app.get('/guide', page('guide.html'));
+app.get('/guide', (req, res) => page(access(req.session).ok ? 'guide.html' : 'guide-locked.html', null, 'private')(req, res));
 app.get('/guide.html', (req, res) => res.redirect('/guide'));
 app.get('/r/:code', (req, res) => { if (/^[\w-]{8}\.\d{5,25}$/.test(req.params.code)) req.session.ref = req.params.code; res.redirect('/'); });
 app.get('/clipping', page('clipping.html'));
