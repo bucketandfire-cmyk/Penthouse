@@ -2,12 +2,12 @@
 const env = process.env;
 export const CFG = {
   minTrades30: +env.MIN_TRADES_30 || 20,   // closed trades needed in the 30-day window
-  minTrades7: +env.MIN_TRADES_7 || 5,      // closed trades needed in the last 7 days to judge a "week"
+  minTrades7: +env.MIN_TRADES_7 || 3,      // closed trades needed in the last 7 days to judge a week
   confirm: +env.CONFIRM_REVIEWS || 2,      // consecutive passing reviews before (re)promotion
-  benchWinRate: 0.3,                       // a losing week with a win rate below this benches an active wallet
+  benchWinRate: 1,                         // any losing week (win rate below this) benches an active wallet
   candidateDays: +env.CANDIDATE_DAYS || 14,
   benchedDays: +env.BENCHED_DAYS || 30,
-  devIdleDays: +env.DEV_IDLE_DAYS || 14,   // dev benched if none of their tokens won in this long
+  devIdleDays: +env.DEV_IDLE_DAYS || 7,    // dev benched if none of their tokens won in this long
   devRetireDays: +env.DEV_RETIRE_DAYS || 45,
 };
 const pct = (x) => Math.round(x * 100);
