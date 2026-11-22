@@ -7,10 +7,13 @@ import { spend, overBudget } from './credits.js';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const insT = db.prepare('INSERT OR IGNORE INTO trades(sig,wallet,mint,side,tokens,sol,ts) VALUES(?,?,?,?,?,?,?)');
 
-let pxCache = null;
+// One shared price lookup: the promise is cached, so a burst of webhook posts does not each call DexScreener (rate limits left SOL unpriced)
+let pxP = null, pxT = 0;
 export async function getPx() {
-  if (!pxCache || Date.now() - pxCache.t > 5 * 60 * 1000) pxCache = { t: Date.now(), v: await loadPx() };
-  return pxCache.v;
+  if (!pxP || Date.now() - pxT > 5 * 60 * 1000) { pxT = Date.now(); pxP = loadPx().catch(() => null); }
+  const v = await pxP;
+  if (!v) pxT = Date.now() - 4 * 60 * 1000; // pricing failed: try again in about a minute
+  return v;
 }
 
 // When Helius says the plan's credits are used up, stop calling it for a while instead of retrying every wallet
