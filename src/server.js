@@ -1,5 +1,5 @@
 import { touch } from './activity.js';
-import { spend, overBudget } from './credits.js';
+import { spend, overBudget, meter } from './credits.js';
 import { spawn } from 'node:child_process';
 import 'dotenv/config';
 import express from 'express';
@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CFG as BILL, PLANS, REFERRAL_DAYS, access, configured, createInvoice, getInvoice, checkPayments, expiryOf } from './billing.js';
+import { CFG as BILL, PLANS, CREDIT_PACKS, donatedUsd, REFERRAL_DAYS, access, configured, createInvoice, getInvoice, checkPayments, expiryOf } from './billing.js';
 import { submitContact, MAIL_OK } from './contact.js';
 import { handleTransactions, eventsFeed } from './live.js';
 import { creatorOf } from './creator.js';
@@ -126,7 +126,8 @@ app.get('/api/me', (req, res) => {
 // --- Billing (crypto, Solana): invoices are matched to on-chain payments to the treasury address ---
 const needLogin = (req, res, next) => (req.session?.id ? next() : res.status(401).json({ error: 'Sign in with Discord first.' }));
 app.get('/api/billing/plan', needLogin, (req, res) => res.json({
-  configured: configured(), price_usd: BILL.priceUsd, period_days: BILL.periodDays, invoice_minutes: BILL.invoiceMin, assets: ['usdc', 'sol'], plans: PLANS }));
+  configured: configured(), price_usd: BILL.priceUsd, period_days: BILL.periodDays, invoice_minutes: BILL.invoiceMin, assets: ['usdc', 'sol'], plans: PLANS, packs: CREDIT_PACKS }));
+app.get('/api/dash/credits', member, (req, res) => res.json({ ...meter(), donated_usd: donatedUsd(), packs: CREDIT_PACKS }));
 app.post('/api/billing/invoice', needLogin, async (req, res) => {
   if (!req.is('application/json')) return res.status(415).json({ error: 'Bad request.' });
   const msg = { not_configured: 'Payments are not set up yet. Contact the admins.', price_unavailable: 'Could not get the SOL price. Try USDC or try again.',
