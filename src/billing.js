@@ -2,6 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import db from './db.js';
 import { solUsd } from './prices.js';
+import { spend } from './credits.js';
 
 const env = process.env;
 const list = (v) => (v || '').split(',').map((x) => x.trim()).filter(Boolean);
@@ -165,6 +166,7 @@ export async function checkPayments({ force = false } = {}) {
     if (sig && sig === lastSig && Date.now() - lastFull < 10 * 60 * 1000) return 0; // nothing new on the treasury wallet
     const u = new URL(`https://api.helius.xyz/v0/addresses/${CFG.treasury}/transactions`);
     u.searchParams.set('api-key', env.HELIUS_API_KEY); u.searchParams.set('limit', '100');
+    spend(100);
     const r = await fetch(u);
     if (!r.ok) return 0;
     const earliest = Math.min(...pend.map((i) => i.created_ts)) - 120;
