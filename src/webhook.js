@@ -27,10 +27,21 @@ const call = async (path, method, body) => {
 };
 const sha = (v) => crypto.createHash('sha1').update(v).digest('hex');
 const state = readState('webhook');
+const mode = process.argv[2]; // --pause (site idle) or --resume (a member is back)
 let listed = null;
 const list = async () => (listed ||= await call('', 'GET'));
 
 try {
+  if (mode === '--pause') {
+    const park = process.env.TREASURY_WALLET; // one quiet address: nothing is delivered, nothing is billed
+    if (state.paused || !state.traders?.id || !park) process.exit(0);
+    await call(`/${state.traders.id}`, 'PUT', { webhookURL: specs.find((x) => x.key === 'traders')?.url || `${hookUrl}?set=traders`, transactionTypes: ['SWAP'], accountAddresses: [park], webhookType: 'enhanced', authHeader: SECRET });
+    state.paused = true; delete state.traders.hash; writeState('webhook', state);
+    console.log('Trader webhook paused: no one is on the site');
+    process.exit(0);
+  }
+  if (mode === '--resume') { state.paused = false; delete state.traders?.hash; writeState('webhook', state); }
+  else if (state.paused) { console.log('Trader webhook is paused (site idle): leaving it'); process.exit(0); }
   // Retire the old single webhook (same URL without ?set=) so events are not delivered, and billed, twice
   if (!state.migrated) {
     for (const w of (await list()).filter((x) => x.webhookURL === hookUrl)) { await call(`/${w.webhookID}`, 'DELETE'); console.log(`Removed old combined webhook ${w.webhookID}`); }
