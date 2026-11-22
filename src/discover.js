@@ -3,6 +3,7 @@ import { creatorOf } from './creator.js';
 import db from './db.js';
 import { parseSwap } from './parse.js';
 import { loadPx, WSOL } from './prices.js';
+import { spend, overBudget } from './credits.js';
 
 const KEY = process.env.HELIUS_API_KEY;
 if (!KEY) { console.error('Set HELIUS_API_KEY in .env'); process.exit(1); }
@@ -95,6 +96,8 @@ async function evaluate() {
 // Generic fallback for Meteora, LaunchLab/StonkFun and anything else: the signer of the mint's earliest transaction.
 // Guarded: if the API ignores sort order, asc and desc return the same tx and we refuse to guess.
 async function earliestSigner(mint) {
+  if (overBudget()) return null;
+  spend(200);
   try {
     const get = async (order) => {
       const u = new URL(`https://api.helius.xyz/v0/addresses/${mint}/transactions`);
@@ -120,6 +123,8 @@ async function topTraders(mint, creator) {
     const u = new URL(`https://api.helius.xyz/v0/addresses/${mint}/transactions`);
     u.searchParams.set('api-key', KEY); u.searchParams.set('limit', '100'); u.searchParams.set('type', 'SWAP');
     if (before) u.searchParams.set('before', before);
+    if (overBudget()) { quota = true; break; }
+    spend(100);
     const r = await fetch(u);
     if (r.status === 429) { // rate limit: retry a few times; out of credits: give up on this token
       if (/max usage|quota|credits/i.test(await r.text().catch(() => '')) || ++tries > 5) { quota = true; break; }
