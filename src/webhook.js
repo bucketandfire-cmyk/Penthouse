@@ -1,5 +1,6 @@
 // Creates or updates the Helius webhooks so they watch the current active roster.
 // Needs PUBLIC_URL (your site, https), HELIUS_API_KEY and HELIUS_WEBHOOK_SECRET in .env. Run after every roster change (cycle.js does).
+// Credit saving: only the WEBHOOK_MAX_TRADERS (default 250) most active roster wallets are watched live, because every swap by every watched wallet is billed.
 // Credit saving: traders get a SWAP-only webhook (every other kind of transaction would be billed and then ignored),
 // devs get an ANY webhook (launches are not swaps). Nothing is sent to Helius when the watched list has not changed.
 import 'dotenv/config';
@@ -14,7 +15,8 @@ if (!/^https:\/\//.test(PUBLIC_URL)) { console.error('PUBLIC_URL must start with
 const hookUrl = PUBLIC_URL.replace(/\/+$/, '') + '/webhooks/helius';
 const addrs = (sql) => db.prepare(sql).all().map((r) => r.address).sort();
 const specs = [
-  { key: 'traders', types: ['SWAP'], url: `${hookUrl}?set=traders`, addresses: addrs("SELECT address FROM wallets WHERE status='active' AND role='trader'") },
+  { key: 'traders', types: ['SWAP'], url: `${hookUrl}?set=traders`, addresses: addrs(`SELECT w.address FROM wallets w LEFT JOIN (SELECT wallet, SUM(sol) v FROM trades WHERE ts > strftime('%s','now') - 7*86400 GROUP BY wallet) t ON t.wallet = w.address
+    WHERE w.status='active' AND w.role='trader' ORDER BY COALESCE(t.v, 0) DESC LIMIT ${Math.max(20, +process.env.WEBHOOK_MAX_TRADERS || 250)}`) },
   { key: 'devs', types: ['ANY'], url: `${hookUrl}?set=devs`, addresses: addrs("SELECT address FROM wallets WHERE status='active' AND role IN ('dev','both')") },
 ].filter((s) => s.addresses.length);
 if (!specs.length) { console.log('No active wallets yet. Run npm run cycle first.'); process.exit(0); }
