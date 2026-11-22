@@ -629,6 +629,42 @@ function startPings() {
   sync(); poll(); timer = setInterval(poll, 5000);
 }
 
+// ---------- shared credit meter + top-up ($5 per 1M Helius credits) ----------
+async function creditsModal() {
+  const kf = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : `${Math.round(n / 1e3)}k`;
+  const back = h('div', { style: 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px' });
+  const box = h('div', { style: 'background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;max-width:420px;width:100%;max-height:90vh;overflow:auto' });
+  const close = () => { clearInterval(poll); back.remove(); };
+  back.onclick = (e) => { if (e.target === back) close(); };
+  let poll = null, asset = 'usdc';
+  back.append(box); document.body.append(back);
+  let c; try { c = await api('/api/dash/credits'); } catch { close(); return; }
+  const bar = h('div', { style: 'height:10px;border-radius:99px;background:var(--surface2);overflow:hidden;margin:10px 0' }, h('div', { style: `height:100%;width:${Math.min(100, Math.round(c.used / Math.max(1, c.cap) * 100))}%;background:var(--g)` }));
+  const out = h('div', {});
+  const msg = h('p', { class: 'sub', style: 'color:var(--amber)' });
+  const packBtns = Object.entries(c.packs).map(([k, p]) => { const b = h('button', { type: 'button', class: 'btn ghost', style: 'padding:8px 14px' }, `$${p.usd} · ${kf(p.credits)} credits`); b.onclick = () => buy(k, b); return b; });
+  const assetBtns = ['usdc', 'sol'].map((a) => { const b = h('button', { type: 'button', class: 'btn ghost', style: 'padding:6px 12px;font-size:13px', 'aria-pressed': String(a === asset) }, a.toUpperCase()); b.onclick = () => { asset = a; assetBtns.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }; return b; });
+  async function buy(plan, btn) {
+    btn.disabled = true; msg.textContent = '';
+    try {
+      const r = await fetch('/api/billing/invoice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asset, plan }) });
+      const inv = await r.json(); if (!r.ok) throw new Error(inv.error || 'Could not create the invoice.');
+      const unit = inv.asset === 'usdc' ? 'USDC' : 'SOL', status = h('span', {}, 'Waiting for your payment…');
+      const cp = (v, b) => { b.onclick = () => navigator.clipboard?.writeText(v).then(() => { b.textContent = 'Copied'; }).catch(() => {}); return b; };
+      out.replaceChildren(h('div', { class: 'sub' }, 'Send exactly'), h('div', { style: 'font:600 22px var(--head)' }, `${inv.amount} ${unit}`), cp(inv.amount, h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 10px;font-size:12px' }, 'Copy amount')),
+        h('div', { class: 'sub', style: 'margin-top:10px' }, 'To this Solana address'), h('div', { style: 'word-break:break-all;font-size:13px' }, inv.address), cp(inv.address, h('button', { type: 'button', class: 'btn ghost', style: 'padding:4px 10px;font-size:12px' }, 'Copy address')),
+        h('p', {}, h('a', { class: 'btn ghost', href: inv.link }, 'Open in wallet app')), h('p', { class: 'sub' }, 'The extra digits identify your payment, so please do not round. It is detected automatically within about a minute.'), status);
+      clearInterval(poll);
+      poll = setInterval(async () => { try { const st = await api(`/api/billing/invoice/${encodeURIComponent(inv.id)}`); if (st.status === 'paid') { clearInterval(poll); status.textContent = 'Thank you! Credits added.'; setTimeout(() => { close(); location.reload(); }, 1500); } } catch {} }, 5000);
+    } catch (e) { msg.textContent = e.message; } finally { btn.disabled = false; }
+  }
+  box.append(h('h2', { style: 'margin:0 0 6px' }, 'Site credits'),
+    h('p', { class: 'sub' }, 'The dashboard runs on a shared Helius credit budget. Today the site has used ', h('b', {}, kf(c.used)), ' of ', h('b', {}, kf(c.cap)), '.'), bar,
+    h('p', { class: 'sub' }, `Bonus pool from supporters: ${kf(c.bonus)} credits. It switches on only after the daily budget runs out, so the site stays live.${c.donated_usd ? ` Members chipped in $${num(c.donated_usd, 0)} in the last 30 days.` : ''}`),
+    h('h3', { style: 'margin:16px 0 8px' }, 'Add credits · $5 per 1M'), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px' }, assetBtns), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, packBtns), msg, out,
+    h('p', {}, h('button', { type: 'button', class: 'btn ghost', style: 'padding:6px 14px', onclick: close }, 'Close')));
+}
+
 async function init() {
   const me = await fetch('/api/me').then((r) => r.json()).catch(() => ({}));
   if (!me.name) return showGate(true);
@@ -637,7 +673,10 @@ async function init() {
   if (location.hash === '#renew' && me.via === 'paid') return showPaywall(true);
   const refBtn = h('button', { type: 'button', class: 'btn ghost', style: 'padding:6px 14px;font-size:13px', title: 'Copy your referral link' }, 'Refer a friend');
   refBtn.onclick = async () => { try { const r = await api('/api/dash/referral'); const link = location.origin + r.path; copy(link, refBtn); refBtn.title = `You get ${r.reward_days} free days when a friend pays. Joined: ${r.joined}, paid: ${r.paid}`; } catch {} };
-  document.getElementById('who').append(refBtn, ` ${me.name} · `, h('a', { href: '/logout' }, 'Sign out'));
+  const credBtn = h('button', { type: 'button', class: 'btn ghost', style: 'padding:6px 14px;font-size:13px', title: 'Shared Helius credit budget that keeps the dashboard running' }, 'Credits');
+  credBtn.onclick = () => creditsModal();
+  document.getElementById('who').append(credBtn, ' ', refBtn, ` ${me.name} · `, h('a', { href: '/logout' }, 'Sign out'));
+  api('/api/dash/credits').then((c) => { credBtn.textContent = `Credits ${Math.round(Math.max(0, c.cap - c.used + c.bonus) / 1000)}k left`; }).catch(() => {});
   for (const t of TABS) {
     t.btn = h('button', { role: 'tab', id: `t-${t.id}`, 'aria-controls': `p-${t.id}`, onclick: () => select(t.id) }, t.label);
     t.panel = h('section', { role: 'tabpanel', id: `p-${t.id}`, 'aria-labelledby': `t-${t.id}`, hidden: '' });
