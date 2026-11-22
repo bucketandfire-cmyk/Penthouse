@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readState } from './state.js';
 import { isActive, idleMinutes } from './activity.js';
+import { overBudget } from './credits.js';
 import './server.js';
 
 // Optional: run the discover > ingest > rotate cycle on a timer (AUTO_CYCLE=1)
@@ -21,7 +22,7 @@ const tick = () => {
     const paused = !!readState('webhook').paused;
     const idleLimit = +process.env.IDLE_PAUSE_MIN || 30;
     if (!paused && idleMinutes() > idleLimit) spawn(process.execPath, ['src/webhook.js', '--pause'], { cwd, stdio: 'inherit' });
-    else if (paused && isActive()) spawn(process.execPath, ['src/webhook.js', '--resume'], { cwd, stdio: 'inherit' });
+    else if (paused && isActive() && !overBudget()) spawn(process.execPath, ['src/webhook.js', '--resume'], { cwd, stdio: 'inherit' });
   }
 };
 setTimeout(tick, 2 * 60_000);
