@@ -486,6 +486,7 @@ function showGate(needLogin) {
     h('h1', {}, needLogin ? 'Penthouse Dashboard' : 'Members only'),
     h('p', {}, needLogin ? 'Sign in with Discord to check your membership.' : 'Join the Penthouse Discord, then sign in again.'),
     h('a', { class: 'btn', href: '/login' }, needLogin ? 'Sign in with Discord' : 'Try again'),
+    h('p', { class: 'sub' }, 'By signing in you agree to the ', h('a', { href: '/terms.html' }, 'Terms'), ' and ', h('a', { href: '/privacy.html' }, 'Privacy Policy'), '.'),
     h('p', { style: 'margin-top:20px' }, h('a', { href: '/' }, '← Back to home'))));
 }
 let ME = {};
