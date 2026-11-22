@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import db from './db.js';
 import { solUsd } from './prices.js';
-import { spend } from './credits.js';
+import { spend, addBonus } from './credits.js';
 
 const env = process.env;
 const list = (v) => (v || '').split(',').map((x) => x.trim()).filter(Boolean);
@@ -23,6 +23,9 @@ export const PLANS = {
   month: { days: CFG.periodDays, usd: CFG.priceUsd },
   ...(qPct > 0 ? { quarter: { days: CFG.periodDays * 3, usd: Math.round(CFG.priceUsd * 3 * (1 - qPct / 100) * 100) / 100 } } : {}),
 };
+export const CREDIT_PACKS = { credits5: { usd: 5, credits: 1e6 }, credits10: { usd: 10, credits: 2e6 }, credits25: { usd: 25, credits: 5e6 } }; // $5 per 1M Helius credits
+export const isPack = (id) => String(id).startsWith('cr_');
+export const donatedUsd = (now = nowS()) => db.prepare("SELECT COALESCE(SUM(usd),0) v FROM invoices WHERE id LIKE 'cr\\_%' ESCAPE '\\' AND status='paid' AND created_ts>?").get(now - 30 * DAY).v;
 export const daysForUsd = (usd) => Object.values(PLANS).find((p) => Math.abs(p.usd - usd) < 0.005)?.days ?? CFG.periodDays;
 export const REFERRAL_DAYS = Math.max(0, +env.REFERRAL_DAYS || 7); // free days the referrer gets per paying referral (0 turns it off)
 export const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -60,11 +63,11 @@ function view(inv) {
 }
 
 export async function createInvoice(user, asset, plan = 'month') {
-  const pl = PLANS[plan]; if (!pl) throw new Error('bad_plan');
+  const pack = CREDIT_PACKS[plan], pl = pack || PLANS[plan]; if (!pl) throw new Error('bad_plan');
   if (!['usdc', 'sol'].includes(asset)) throw new Error('bad_asset');
   if (!configured()) throw new Error('not_configured');
   const now = nowS();
-  const open = db.prepare("SELECT * FROM invoices WHERE discord_id=? AND asset=? AND status='pending' AND expires_ts>? AND ABS(usd-?)<0.005").get(user.id, asset, now, pl.usd);
+  const open = db.prepare("SELECT * FROM invoices WHERE discord_id=? AND asset=? AND status='pending' AND expires_ts>? AND ABS(usd-?)<0.005").all(user.id, asset, now, pl.usd).find((i) => isPack(i.id) === !!pack);
   if (open) return view(open);
   if (db.prepare('SELECT COUNT(*) n FROM invoices WHERE discord_id=? AND created_ts>?').get(user.id, now - 3600).n >= 6) throw new Error('rate_limited');
 
@@ -78,7 +81,7 @@ export async function createInvoice(user, asset, plan = 'month') {
   for (let i = 0; i < 300; i++) { amt = base + 1 + crypto.randomInt(range); if (!taken.has(amt)) break; }
   if (taken.has(amt)) throw new Error('busy');
 
-  const inv = { id: crypto.randomBytes(9).toString('base64url'), discord_id: user.id, name: user.name || '', asset, amount_atomic: amt, usd: pl.usd,
+  const inv = { id: (pack ? 'cr_' : '') + crypto.randomBytes(9).toString('base64url'), discord_id: user.id, name: user.name || '', asset, amount_atomic: amt, usd: pl.usd,
     status: 'pending', created_ts: now, expires_ts: now + CFG.invoiceMin * 60, paid_sig: null };
   db.prepare('INSERT INTO invoices VALUES(@id,@discord_id,@name,@asset,@amount_atomic,@usd,@status,@created_ts,@expires_ts,@paid_sig)').run(inv);
   return view(inv);
@@ -129,6 +132,7 @@ export function applyMatches(matches, now = nowS()) {
         .run(m.sig, m.invoice.id, m.invoice.discord_id, m.invoice.asset, m.atomic, m.payer, m.ts);
       if (!ins.changes) continue; // this transaction was already credited
       db.prepare("UPDATE invoices SET status='paid', paid_sig=? WHERE id=?").run(m.sig, m.invoice.id);
+      if (isPack(m.invoice.id)) { addBonus(Math.round(m.invoice.usd / 5 * 1e6)); db.prepare("INSERT INTO funnel_events(ts,day,kind,who) VALUES(?,date(?,'unixepoch'),'credits',?)").run(now, now, m.invoice.discord_id); continue; }
       credit(m.invoice.discord_id, m.invoice.name, daysForUsd(m.invoice.usd), m.invoice.usd, now);
       db.prepare("INSERT INTO funnel_events(ts,day,kind,who) VALUES(?,date(?,'unixepoch'),'paid',?)").run(now, now, m.invoice.discord_id);
       const ref = REFERRAL_DAYS > 0 ? db.prepare('SELECT referrer FROM referrals WHERE referred=? AND rewarded=0').get(m.invoice.discord_id) : null;
