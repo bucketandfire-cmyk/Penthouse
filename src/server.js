@@ -1,4 +1,5 @@
 import { touch } from './activity.js';
+import { spend } from './credits.js';
 import 'dotenv/config';
 import express from 'express';
 import cookieSession from 'cookie-session';
@@ -215,6 +216,7 @@ app.post('/webhooks/helius', (req, res, next) => {
   next();
 }, express.json({ limit: '10mb' }), (req, res) => {
   res.status(200).end();
+  spend(Array.isArray(req.body) ? req.body.length : 1);
   (async () => {
     try { await handleTransactions(req.body, { px: await getPx().catch(() => null), creatorOf }); }
     catch (e) { console.error('webhook', e.message); }
