@@ -173,7 +173,34 @@ const ago = (ts) => { if (!ts) return 'never'; const s = Date.now() / 1000 - ts;
 const day = (ts) => ts ? new Date(ts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '–';
 const mins = (m) => m == null ? '–' : m < 1 ? `${Math.round(m * 60)}s` : m < 90 ? `${num(m, 1)}m` : `${num(m / 60, 1)}h`;
 const solscan = (a, label) => B58.test(a || '') ? h('a', { href: `https://solscan.io/account/${a}`, target: '_blank', rel: 'noopener noreferrer' }, label) : label;
-const dex = (m, label) => B58.test(m || '') ? h('a', { href: `https://dexscreener.com/solana/${m}`, target: '_blank', rel: 'noopener noreferrer' }, label) : label;
+const COIN_SITES = [
+  ['DexScreener', (m) => `https://dexscreener.com/solana/${m}`],
+  ['Pump.fun', (m) => `https://pump.fun/coin/${m}`],
+  ['Axiom', (m) => `https://axiom.trade/t/${m}`],
+  ['Fomo', (m) => `https://fomo.family/t/${m}`],
+];
+let coinMenu = null;
+const closeCoinMenu = () => { if (coinMenu) { coinMenu.remove(); coinMenu = null; } };
+document.addEventListener('click', closeCoinMenu);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCoinMenu(); });
+window.addEventListener('scroll', closeCoinMenu, true);
+(() => { const st = document.createElement('style'); st.textContent = '.coinmenu{position:fixed;z-index:60;min-width:180px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.6)}.coinmenu .ct{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 10px 4px}.coinmenu a,.coinmenu button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--ink);font:inherit;font-size:14px;padding:8px 10px;border-radius:8px;cursor:pointer;text-decoration:none}.coinmenu a:hover,.coinmenu button:hover{background:rgba(255,255,255,.1)}'; document.head.append(st); })();
+const dex = (m, label) => {
+  if (!B58.test(m || '')) return label;
+  return h('a', { href: COIN_SITES[0][1](m), target: '_blank', rel: 'noopener noreferrer', title: 'Open coin in…', onclick: (e) => {
+    e.preventDefault(); e.stopPropagation(); closeCoinMenu();
+    const r = e.currentTarget.getBoundingClientRect();
+    const copy = h('button', { type: 'button', onclick: () => { try { navigator.clipboard.writeText(m); copy.textContent = 'Copied'; } catch { copy.textContent = m; } } }, 'Copy address');
+    coinMenu = h('div', { class: 'coinmenu', onclick: (ev) => ev.stopPropagation() },
+      h('div', { class: 'ct' }, 'Open with'),
+      COIN_SITES.map(([n, f]) => h('a', { href: f(m), target: '_blank', rel: 'noopener noreferrer', onclick: () => setTimeout(closeCoinMenu, 0) }, n)),
+      copy);
+    document.body.append(coinMenu);
+    const w = coinMenu.offsetWidth, ht = coinMenu.offsetHeight;
+    coinMenu.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+    coinMenu.style.top = (r.bottom + ht + 8 > innerHeight ? Math.max(8, r.top - ht - 4) : r.bottom + 4) + 'px';
+  } }, label);
+};
 const pill = (s) => h('span', { class: `pill s-${s}` }, s);
 const hue = (str) => { let x = 0; for (const c of String(str)) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x % 360; };
 const pfpSrc = (a, v) => (v ? (window.__pfpSrc?.(a) || `/api/pfp/${encodeURIComponent(a)}?v=${v}`) : null);
