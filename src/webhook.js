@@ -7,6 +7,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import db from './db.js';
 import { readState, writeState } from './state.js';
+import { overBudget } from './credits.js';
 
 const { HELIUS_API_KEY: KEY, HELIUS_WEBHOOK_SECRET: SECRET, PUBLIC_URL } = process.env;
 if (!KEY || !SECRET || !PUBLIC_URL) { console.log('Live pings not configured (need HELIUS_API_KEY, HELIUS_WEBHOOK_SECRET, PUBLIC_URL). Skipping.'); process.exit(0); }
@@ -29,21 +30,28 @@ const call = async (path, method, body) => {
 };
 const sha = (v) => crypto.createHash('sha1').update(v).digest('hex');
 const state = readState('webhook');
-const mode = process.argv[2]; // --pause (site idle) or --resume (a member is back)
+let mode = process.argv[2]; // --pause (site idle or credit cap hit) or --resume (a member is back)
 let listed = null;
 const list = async () => (listed ||= await call('', 'GET'));
 
 try {
+  if (mode !== '--pause' && mode !== '--resume' && overBudget() && !state.paused) mode = '--pause'; // daily credit cap reached: park everything
+  if (mode === '--resume' && overBudget()) { console.log('Daily credit cap reached: not resuming webhooks'); process.exit(0); }
   if (mode === '--pause') {
     const park = process.env.TREASURY_WALLET; // one quiet address: nothing is delivered, nothing is billed
-    if (state.paused || !state.traders?.id || !park) process.exit(0);
-    await call(`/${state.traders.id}`, 'PUT', { webhookURL: specs.find((x) => x.key === 'traders')?.url || `${hookUrl}?set=traders`, transactionTypes: ['SWAP'], accountAddresses: [park], webhookType: 'enhanced', authHeader: SECRET });
-    state.paused = true; delete state.traders.hash; writeState('webhook', state);
-    console.log('Trader webhook paused: no one is on the site');
+    if (state.paused || !park) process.exit(0);
+    for (const key of ['traders', 'devs']) {
+      if (!state[key]?.id) continue;
+      const types = key === 'traders' ? ['SWAP'] : ['ANY'];
+      try { await call(`/${state[key].id}`, 'PUT', { webhookURL: `${hookUrl}?set=${key}`, transactionTypes: types, accountAddresses: [park], webhookType: 'enhanced', authHeader: SECRET }); delete state[key].hash; }
+      catch (e) { console.error(`Could not park "${key}": ${e.message}`); }
+    }
+    state.paused = true; writeState('webhook', state);
+    console.log('Webhooks paused (no one on the site, or the daily credit cap was reached)');
     process.exit(0);
   }
-  if (mode === '--resume') { state.paused = false; delete state.traders?.hash; writeState('webhook', state); }
-  else if (state.paused) { console.log('Trader webhook is paused (site idle): leaving it'); process.exit(0); }
+  if (mode === '--resume') { state.paused = false; for (const k of ['traders', 'devs']) delete state[k]?.hash; writeState('webhook', state); }
+  else if (state.paused) { console.log('Webhooks are paused: leaving them'); process.exit(0); }
   // Retire the old single webhook (same URL without ?set=) so events are not delivered, and billed, twice
   if (!state.migrated) {
     for (const w of (await list()).filter((x) => x.webhookURL === hookUrl)) { await call(`/${w.webhookID}`, 'DELETE'); console.log(`Removed old combined webhook ${w.webhookID}`); }
@@ -55,8 +63,12 @@ try {
     const payload = { webhookURL: s.url, transactionTypes: s.types, accountAddresses: s.addresses, webhookType: 'enhanced', authHeader: SECRET };
     let id = state[s.key]?.id;
     if (!id) id = (await list()).find((w) => w.webhookURL === s.url)?.webhookID;
-    if (id) { await call(`/${id}`, 'PUT', payload); console.log(`Updated webhook "${s.key}" ${id}: watching ${s.addresses.length} wallets`); }
-    else { id = (await call('', 'POST', payload)).webhookID; console.log(`Created webhook "${s.key}" ${id}: watching ${s.addresses.length} wallets`); }
+    let done = false;
+    if (id) {
+      try { await call(`/${id}`, 'PUT', payload); console.log(`Updated webhook "${s.key}" ${id}: watching ${s.addresses.length} wallets`); done = true; }
+      catch (e) { if (!/ 404/.test(e.message)) throw e; } // deleted in the Helius dashboard: create it again
+    }
+    if (!done) { id = (await call('', 'POST', payload)).webhookID; console.log(`Created webhook "${s.key}" ${id}: watching ${s.addresses.length} wallets`); }
     state[s.key] = { id, hash };
     writeState('webhook', state);
   }
