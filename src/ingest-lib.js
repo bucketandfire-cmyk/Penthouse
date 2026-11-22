@@ -2,6 +2,7 @@
 import db from './db.js';
 import { parseSwap } from './parse.js';
 import { loadPx } from './prices.js';
+import { spend, overBudget } from './credits.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const insT = db.prepare('INSERT OR IGNORE INTO trades(sig,wallet,mint,side,tokens,sol,ts) VALUES(?,?,?,?,?,?,?)');
@@ -14,7 +15,7 @@ export async function getPx() {
 
 // When Helius says the plan's credits are used up, stop calling it for a while instead of retrying every wallet
 let quotaUntil = 0;
-export const quotaHit = () => Date.now() < quotaUntil;
+export const quotaHit = () => Date.now() < quotaUntil || overBudget();
 
 async function page(addr, before) {
   if (quotaHit()) throw new Error('Helius quota exhausted');
@@ -24,6 +25,7 @@ async function page(addr, before) {
   u.searchParams.set('type', 'SWAP');
   if (before) u.searchParams.set('before', before);
   for (let a = 0; a < 5; a++) {
+    spend(100);
     const res = await fetch(u);
     if (res.status === 429) {
       if (/max usage|quota|credits/i.test(await res.text().catch(() => ''))) { quotaUntil = Date.now() + 30 * 60 * 1000; throw new Error('Helius quota exhausted'); }
