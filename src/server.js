@@ -1,3 +1,4 @@
+import { touch } from './activity.js';
 import 'dotenv/config';
 import express from 'express';
 import cookieSession from 'cookie-session';
@@ -159,6 +160,7 @@ function member(req, res, next) {
     if (a.reason === 'not_member') return res.status(403).json({ error: 'Join the Penthouse Discord to see the dashboard.' });
     return res.status(402).json({ error: 'A subscription is required.', code: 'payment_required' });
   }
+  touch();
   const now = Date.now(), arr = (dashHits.get(req.session.id) ?? []).filter((t) => now - t < 60000);
   arr.push(now); dashHits.set(req.session.id, arr);
   if (arr.length > 120) return res.status(429).json({ error: 'Too many requests. Wait a moment.' });
