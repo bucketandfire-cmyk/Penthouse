@@ -1,5 +1,6 @@
 import { touch } from './activity.js';
-import { spend } from './credits.js';
+import { spend, overBudget } from './credits.js';
+import { spawn } from 'node:child_process';
 import 'dotenv/config';
 import express from 'express';
 import cookieSession from 'cookie-session';
@@ -210,6 +211,7 @@ app.post('/api/contact', async (req, res) => {
 // --- Live pings: Helius pushes roster transactions here (set HELIUS_WEBHOOK_SECRET; see README) ---
 const HOOK = process.env.HELIUS_WEBHOOK_SECRET;
 const sha = (v) => crypto.createHash('sha256').update(String(v)).digest();
+let lastPark = 0;
 app.post('/webhooks/helius', (req, res, next) => {
   if (!HOOK) return res.status(503).end();
   if (!crypto.timingSafeEqual(sha(req.get('authorization') || ''), sha(HOOK))) return res.status(401).end(); // checked before the body is parsed
@@ -217,6 +219,7 @@ app.post('/webhooks/helius', (req, res, next) => {
 }, express.json({ limit: '10mb' }), (req, res) => {
   res.status(200).end();
   spend(Array.isArray(req.body) ? req.body.length : 1);
+  if (overBudget() && Date.now() - lastPark > 10 * 60_000) { lastPark = Date.now(); spawn(process.execPath, ['src/webhook.js', '--pause'], { cwd: path.join(__dirname, '..'), stdio: 'inherit' }); } // hard stop at the daily cap
   (async () => {
     try { await handleTransactions(req.body, { px: await getPx().catch(() => null), creatorOf }); }
     catch (e) { console.error('webhook', e.message); }
