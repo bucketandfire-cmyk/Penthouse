@@ -141,7 +141,7 @@ app.get('/api/billing/invoice/:id', needLogin, async (req, res) => {
   if (!inv) return res.status(404).json({ error: 'Invoice not found.' });
   res.json({ status: inv.status, expires_ts: inv.expires_ts, access_until: expiryOf(req.session.id) || null });
 });
-setInterval(() => checkPayments({ force: true }), 30000);
+setInterval(() => checkPayments({ force: true }), 60000);
 
 // --- Public growth endpoints: a delayed preview, the "called it" board, aggregate proof ---
 const pubHits = new Map();
