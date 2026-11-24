@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { creatorOf } from './creator.js';
+import { isProgram } from './programs.js';
 import db from './db.js';
 import { parseSwap } from './parse.js';
 import { loadPx, WSOL } from './prices.js';
@@ -112,7 +113,8 @@ async function earliestSigner(mint) {
 }
 async function findCreator(w) {
   if (w.launchpad === 'pumpfun' || w.mint.endsWith('pump')) { const c = await creatorOf(w.mint); if (c) return c; }
-  return earliestSigner(w.mint);
+  const e = await earliestSigner(w.mint);
+  return isProgram(e) ? null : e;
 }
 
 // ---------- Traders who profited on a token ----------
@@ -157,6 +159,7 @@ const insW = db.prepare("INSERT INTO wallets(address,name,role,status,source,sta
 const setW = db.prepare('UPDATE wallets SET role=?, status=?, status_since=?, streak=0, note=? WHERE address=?');
 const ev = db.prepare('INSERT INTO wallet_events(address,ts,from_status,to_status,reason) VALUES(?,?,?,?,?)');
 function addWallet(address, role, status, note) {
+  if (isProgram(address)) return false; // programs are not wallets
   const ex = getW.get(address);
   if (!ex) { insW.run(address, `${role}-${address.slice(0, 4)}`, role, status, now, now, note); ev.run(address, now, null, status, note); return true; }
   const newRole = ex.role === role ? role : 'both';
