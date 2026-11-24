@@ -42,7 +42,7 @@ export function signalsOf(trades, { mode = 'single', minSol = 1, windowMin = 30,
 /** trades: rows {sig,wallet,mint,side,tokens,sol,ts} sorted by ts. Returns summary stats and the list of closed positions. */
 export function simulate(trades, sigs, cfg = {}) {
   const c = { ...DEF, ...cfg }, half = c.cost / 2, maxPos = Math.max(1, Math.floor(c.start / c.size));
-  let realized = c.start, peak = c.start, maxDD = 0, halted = false, haltedAt = null, halts = 0;
+  let realized = c.start, peak = c.start, tpeak = c.start, maxDD = 0, halted = false, haltedAt = null, halts = 0;
   const open = [], pend = [], done = [], last = new Map();
   const cash = () => realized - open.reduce((a, p) => a + p.size, 0);
   const have = (mint) => open.some((p) => p.mint === mint) || pend.some((p) => p.mint === mint);
@@ -58,7 +58,7 @@ export function simulate(trades, sigs, cfg = {}) {
   const close = (p, price, ts, why) => {
     open.splice(open.indexOf(p), 1);
     const pnl = p.net(price) - p.size - c.fee;
-    realized += pnl; peak = Math.max(peak, realized); maxDD = Math.max(maxDD, peak - realized);
+    realized += pnl; peak = Math.max(peak, realized); tpeak = Math.max(tpeak, realized); maxDD = Math.max(maxDD, tpeak - realized); // maxDD is measured from the all-time peak; 'peak' resets after a halt and only drives the halt rule
     if (!halted && realized <= peak * (1 - c.haltDD)) { halted = true; haltedAt = ts; halts++; }
     done.push({ mint: p.mint, ts: p.ts, held: ts - p.ts, pnl, why });
   };
