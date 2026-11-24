@@ -3,6 +3,7 @@
 //  - Radar: checked every few minutes with a cheap signature lookup (see radar.js), so a swap shows up a few minutes late.
 // Rate limits matter more than volume: a wallet that swaps hundreds of times a day is usually a bot and costs the most.
 import db from './db.js';
+import { isProgram } from './programs.js';
 
 const env = process.env;
 export const CFG = () => ({
@@ -18,7 +19,7 @@ const rows = () => db.prepare(`SELECT w.address, COALESCE(t.n, 0) n7, COALESCE(t
     EXISTS(SELECT 1 FROM trades x WHERE x.wallet = w.address) alln
   FROM wallets w
   LEFT JOIN (SELECT wallet, COUNT(*) n, SUM(sol) v FROM trades WHERE ts > strftime('%s','now') - 7*86400 GROUP BY wallet) t ON t.wallet = w.address
-  WHERE w.status = 'active' AND w.role = 'trader'`).all();
+  WHERE w.status = 'active' AND w.role = 'trader'`).all().filter((w) => !isProgram(w.address));
 
 /** Pure part, so it can be tested: rows -> { live, radar, noisy } address lists. */
 export function pickTiers(all, c = CFG()) {
@@ -43,4 +44,4 @@ export const tiers = () => pickTiers(rows());
 /** Dev wallets for the ANY webhook: the ones that launched a winner most recently. */
 export const devAddresses = () => db.prepare(`SELECT w.address FROM wallets w
   WHERE w.status = 'active' AND w.role IN ('dev','both')
-  ORDER BY COALESCE((SELECT MAX(detected_ts) FROM winners x WHERE x.creator = w.address), 0) DESC, w.address LIMIT ?`).all(CFG().devs).map((r) => r.address).sort();
+  ORDER BY COALESCE((SELECT MAX(detected_ts) FROM winners x WHERE x.creator = w.address), 0) DESC, w.address LIMIT ?`).all(CFG().devs + 20).map((r) => r.address).filter((a) => !isProgram(a)).slice(0, CFG().devs).sort();
