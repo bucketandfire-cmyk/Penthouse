@@ -2,6 +2,7 @@
 // Cached: the creator of a token never changes, so each coin is looked up once (it used to be one paid call per mention, 77K in a day).
 import { PublicKey } from '@solana/web3.js';
 import { spend } from './credits.js';
+import { isProgram } from './programs.js';
 
 const PUMP = new PublicKey('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P');
 const found = new Map();   // mint -> creator address (permanent)
@@ -23,7 +24,8 @@ async function lookup(mint) {
     const v = r.result?.value;
     if (!v || v.owner !== PUMP.toBase58()) return null;
     const buf = Buffer.from(v.data[0], 'base64');
-    return buf.length >= 81 ? new PublicKey(buf.subarray(49, 81)).toBase58() : null; // creator follows 5 u64s + 1 bool
+    const c = buf.length >= 81 ? new PublicKey(buf.subarray(49, 81)).toBase58() : null; // creator follows 5 u64s + 1 bool
+    return isProgram(c) ? null : c; // an all-zero creator is the System Program, not a person
   } catch { return undefined; }
 }
 
