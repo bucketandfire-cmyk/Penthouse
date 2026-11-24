@@ -167,7 +167,7 @@ export async function checkPayments({ force = false } = {}) {
     const pend = db.prepare("SELECT * FROM invoices WHERE status!='paid' AND created_ts>?").all(now - CFG.graceHours * 3600);
     if (!pend.length) return 0;
     const sig = await newestSig();
-    if (sig && sig === lastSig && Date.now() - lastFull < 10 * 60 * 1000) return 0; // nothing new on the treasury wallet
+    if (sig && sig === lastSig && Date.now() - lastFull < 30 * 60 * 1000) return 0; // nothing new on the treasury wallet
     const u = new URL(`https://api.helius.xyz/v0/addresses/${CFG.treasury}/transactions`);
     u.searchParams.set('api-key', env.HELIUS_API_KEY); u.searchParams.set('limit', '100');
     spend(100);
