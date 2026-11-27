@@ -1,4 +1,6 @@
 const WSOL = 'So11111111111111111111111111111111111111112';
+// Stablecoins are quote assets, never the token being traded (a SOL->USDC swap is not a "buy" of USDC)
+export const STABLES = new Set(['EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB']);
 
 /**
  * Turn one Helius enhanced transaction into a single-token buy or sell for `wallet`, or null.
@@ -31,6 +33,7 @@ export function parseSwap(tx, wallet, px = null) {
   }
   if (net.size !== 1) return null; // skip multi-token routes and plain transfers
   const [mint, tokens] = [...net][0];
+  if (STABLES.has(mint)) return null;
 
   if (tokens > 0 && sol < -0.01) return { side: 'buy', mint, tokens, sol: -sol, ts: tx.timestamp, sig: tx.signature };
   if (tokens < 0 && sol > 0.01) return { side: 'sell', mint, tokens: -tokens, sol, ts: tx.timestamp, sig: tx.signature };
