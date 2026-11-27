@@ -54,7 +54,7 @@ export function confluence({ hours = 6, min_wallets = 3 } = {}) {
   const { names } = build();
   const since = Math.floor(Date.now() / 1000) - hours * 3600;
   const rows = db.prepare(`SELECT t.mint, t.wallet, MIN(t.ts) ts, SUM(t.sol) sol, SUM(t.tokens) tokens FROM trades t JOIN wallets w ON w.address=t.wallet
-    WHERE t.side='buy' AND t.ts>=? AND w.status='active' GROUP BY t.mint, t.wallet`).all(since);
+    WHERE t.side='buy' AND t.ts>=? AND w.status='active' AND t.mint NOT IN (SELECT mint FROM quote_tokens) AND t.mint NOT IN ('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v','Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB','So11111111111111111111111111111111111111112') GROUP BY t.mint, t.wallet`).all(since);
   const by = new Map();
   for (const x of rows) (by.get(x.mint) || by.set(x.mint, []).get(x.mint)).push(x);
   const out = [...by.entries()].filter(([, v]) => v.length >= min_wallets)
@@ -72,7 +72,7 @@ export function rosterChanges({ days = 7, limit = 25 } = {}) {
   const events = db.prepare(`SELECT w.name, w.role, e.from_status, e.to_status, e.reason, e.ts FROM wallet_events e JOIN wallets w ON w.address=e.address
     WHERE e.ts>=? ORDER BY e.ts DESC LIMIT ?`).all(since, limit)
     .map((e) => ({ ...e, date: new Date(e.ts * 1000).toISOString().slice(0, 10), ts: undefined }));
-  const winners = db.prepare('SELECT name, launchpad, peak_fdv_usd, gain_x FROM winners WHERE detected_ts>=? ORDER BY peak_fdv_usd DESC LIMIT 10').all(since);
+  const winners = db.prepare('SELECT name, launchpad, peak_fdv_usd, gain_x FROM winners WHERE detected_ts>=? AND peak_fdv_usd<=? AND gain_x<=? ORDER BY peak_fdv_usd DESC LIMIT 10').all(since, SANE.peak, SANE.gain);
   return { roster_counts: counts, recent_changes: events, recent_winning_tokens: winners };
 }
 
@@ -101,19 +101,22 @@ export function metaHistory({ key, days = 28 } = {}) {
 
 export function devList() {
   return db.prepare(`SELECT w.address, w.name, w.status, w.note, w.status_since,
-      (SELECT COUNT(*) FROM winners x WHERE x.creator=w.address) AS winners,
+      (SELECT COUNT(*) FROM winners x WHERE x.creator=w.address AND x.peak_fdv_usd<=${SANE.peak} AND x.gain_x<=${SANE.gain}) AS winners,
       (SELECT MAX(detected_ts) FROM winners x WHERE x.creator=w.address) AS last_win_ts,
-      (SELECT MAX(peak_fdv_usd) FROM winners x WHERE x.creator=w.address) AS best_peak_fdv_usd
+      (SELECT MAX(peak_fdv_usd) FROM winners x WHERE x.creator=w.address AND x.peak_fdv_usd<=${SANE.peak} AND x.gain_x<=${SANE.gain}) AS best_peak_fdv_usd
     FROM wallets w WHERE w.role IN ('dev','both') AND w.status != 'retired'
     ORDER BY (w.status='active') DESC, winners DESC LIMIT 300`).all();
 }
+
+// Sanity bounds: anything above these is a bad price candle, not a real run
+export const SANE = { peak: +process.env.MAX_PEAK_FDV_USD || 1_000_000_000, gain: +process.env.MAX_GAIN_X || 5000 };
 
 export function winnersList({ days = 7 } = {}) {
   const since = Math.floor(Date.now() / 1000) - days * 86400;
   return db.prepare(`SELECT x.mint, COALESCE(m.symbol, x.name) AS symbol, x.launchpad, x.peak_fdv_usd, x.gain_x, x.detected_ts,
       x.creator, w.name AS creator_name, w.status AS creator_status
     FROM winners x LEFT JOIN token_meta m ON m.mint=x.mint LEFT JOIN wallets w ON w.address=x.creator
-    WHERE x.detected_ts>=? ORDER BY x.peak_fdv_usd DESC LIMIT 100`).all(since);
+    WHERE x.detected_ts>=? AND x.peak_fdv_usd<=? AND x.gain_x<=? ORDER BY x.peak_fdv_usd DESC LIMIT 100`).all(since, SANE.peak, SANE.gain);
 }
 
 export function overview() {
